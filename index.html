@@ -1,665 +1,199 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gap Watcher</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
-* { box-sizing:border-box; margin:0; padding:0; }
-
-:root {
-  --bg:       #f0f2f7;
-  --surface:  #ffffff;
-  --card:     #ffffff;
-  --border:   #dde1ec;
-  --border2:  #c8cedd;
-  --text:     #0f1120;
-  --sub:      #5a6180;
-  --muted:    #8a92aa;
-  --dim:      #e4e7f0;
-  --green:    #00a85a;
-  --green-lt: #e8f8f0;
-  --green-bd: #99dfc0;
-  --red:      #e8203a;
-  --red-lt:   #fef0f2;
-  --red-bd:   #f5aab5;
-  --amber:    #d97706;
-  --amber-lt: #fef7e8;
-  --amber-bd: #f5d58a;
-  --blue:     #2563eb;
-  --blue-lt:  #eff4ff;
-  --sans:     'Inter', sans-serif;
-  --mono:     'JetBrains Mono', monospace;
-}
-
-body { font-family:var(--sans); background:var(--bg); color:var(--text); min-height:100vh; }
-
-.app { max-width:480px; margin:0 auto; min-height:100vh; }
-
-/* ── HEADER ── */
-.hdr {
-  position:sticky; top:0; z-index:10;
-  background:rgba(255,255,255,0.95);
-  backdrop-filter:blur(10px);
-  border-bottom:1px solid var(--border);
-  padding:14px 18px;
-  display:flex; justify-content:space-between; align-items:center;
-}
-.hdr-name { font-size:17px; font-weight:700; color:var(--text); }
-.hdr-sub  { font-size:11px; color:var(--muted); margin-top:1px; }
-.live-chip {
-  display:flex; align-items:center; gap:5px;
-  font-size:10px; font-weight:600; color:var(--green);
-  background:var(--green-lt); border:1px solid var(--green-bd);
-  padding:4px 10px; border-radius:20px; letter-spacing:0.06em;
-}
-.live-dot { width:5px; height:5px; border-radius:50%; background:var(--green); animation:blink 1.4s infinite; }
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0.25}}
-
-/* ── THRESH BAR ── */
-.thresh-bar {
-  background:var(--surface); border-bottom:1px solid var(--border);
-  padding:10px 18px; display:flex; align-items:center; justify-content:space-between;
-}
-.thresh-left { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--sub); font-weight:500; }
-.thresh-input {
-  background:var(--dim); border:1px solid var(--border2); color:var(--text);
-  font-family:var(--mono); font-size:13px; font-weight:700;
-  padding:4px 8px; border-radius:5px; width:46px; text-align:center;
-}
-.thresh-input:focus { outline:none; border-color:var(--blue); background:#fff; }
-.poll-pill { display:flex; align-items:center; gap:7px; }
-.poll-bar  { width:56px; height:3px; background:var(--dim); border-radius:2px; overflow:hidden; }
-.poll-fill { height:100%; background:var(--green); border-radius:2px; transition:width 0.05s linear; }
-.poll-lbl  { font-size:10px; color:var(--muted); font-family:var(--mono); }
-
-/* ── SECTION HDR ── */
-.section-hdr {
-  padding:16px 18px 10px;
-  display:flex; justify-content:space-between; align-items:center;
-}
-.section-lbl   { font-size:11px; font-weight:600; color:var(--muted); letter-spacing:0.08em; text-transform:uppercase; }
-.section-count { font-size:12px; font-weight:600; color:var(--sub); }
-
-/* ── GAME ROWS ── */
-.game-rows { padding:0 12px 20px; display:flex; flex-direction:column; gap:6px; }
-
-.game-row {
-  background:var(--card); border:1px solid var(--border);
-  border-radius:12px; padding:14px 16px;
-  display:flex; justify-content:space-between; align-items:center;
-  cursor:pointer; transition:all 0.15s;
-  -webkit-tap-highlight-color:transparent;
-  box-shadow:0 1px 3px rgba(0,0,0,0.04);
-}
-.game-row:hover         { border-color:var(--border2); box-shadow:0 2px 8px rgba(0,0,0,0.08); }
-.game-row.signal-buy    { border-color:var(--red-bd);   background:var(--red-lt); }
-.game-row.signal-sell   { border-color:var(--green-bd); background:var(--green-lt); }
-.game-row.signal-watch  { border-color:var(--amber-bd); background:var(--amber-lt); }
-
-.row-matchup { font-size:16px; font-weight:700; color:var(--text); letter-spacing:-0.01em; }
-.row-meta    { display:flex; align-items:center; gap:8px; margin-top:4px; }
-.row-time    { font-size:12px; font-weight:500; color:var(--sub); }
-.row-status  { font-size:10px; font-weight:600; padding:2px 7px; border-radius:4px; }
-.status-live  { color:var(--green); background:var(--green-lt); border:1px solid var(--green-bd); }
-.status-pre   { color:var(--amber); background:var(--amber-lt); }
-.status-final { color:var(--muted); background:var(--dim); }
-
-.row-right    { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
-.row-gap      { font-family:var(--mono); font-size:14px; font-weight:700; padding:4px 9px; border-radius:6px; }
-.gap-fire     { color:var(--red);   background:var(--red-lt);   border:1px solid var(--red-bd); }
-.gap-watch    { color:var(--amber); background:var(--amber-lt); border:1px solid var(--amber-bd); }
-.gap-sell     { color:var(--green); background:var(--green-lt); border:1px solid var(--green-bd); }
-.gap-ok       { color:var(--muted); background:var(--dim); border:1px solid var(--border); }
-.row-signal   { font-size:10px; font-weight:600; color:var(--sub); }
-
-/* ── DETAIL VIEW ── */
-.detail-view { display:none; flex-direction:column; min-height:100vh; background:var(--bg); }
-.detail-view.active { display:flex; }
-
-.detail-back {
-  display:flex; align-items:center; gap:8px;
-  padding:13px 18px; border-bottom:1px solid var(--border);
-  cursor:pointer; font-size:13px; font-weight:500; color:var(--sub);
-  background:var(--surface);
-}
-.detail-back:hover { color:var(--text); }
-.detail-back svg { width:16px; height:16px; }
-
-.detail-hero {
-  background:var(--surface); border-bottom:1px solid var(--border); padding:18px;
-}
-.detail-matchup { font-size:22px; font-weight:700; color:var(--text); letter-spacing:-0.02em; margin-bottom:3px; }
-.detail-meta    { font-size:12px; color:var(--sub); margin-bottom:14px; }
-
-/* signal banner */
-.signal-banner { border-radius:12px; padding:16px; }
-.signal-banner.buy   { background:var(--red-lt);   border:1.5px solid var(--red-bd); }
-.signal-banner.sell  { background:var(--green-lt); border:1.5px solid var(--green-bd); }
-.signal-banner.watch { background:var(--amber-lt); border:1.5px solid var(--amber-bd); }
-.signal-banner.idle  { background:var(--dim);      border:1px solid var(--border); }
-
-.banner-label { font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; margin-bottom:5px; }
-.banner-label.buy   { color:var(--red); }
-.banner-label.sell  { color:var(--green); }
-.banner-label.watch { color:var(--amber); }
-.banner-label.idle  { color:var(--muted); }
-
-.banner-action { font-size:19px; font-weight:700; letter-spacing:-0.01em; margin-bottom:8px; line-height:1.2; }
-.banner-action.buy   { color:var(--red); }
-.banner-action.sell  { color:var(--green); }
-.banner-action.watch { color:var(--amber); }
-.banner-action.idle  { color:var(--muted); }
-
-.banner-why { font-size:13px; color:var(--sub); line-height:1.7; }
-.banner-why strong   { color:var(--text); font-weight:600; }
-.banner-why .hl-red  { color:var(--red);   font-weight:700; }
-.banner-why .hl-grn  { color:var(--green); font-weight:700; }
-.banner-why .hl-amb  { color:var(--amber); font-weight:700; }
-
-.cdown-row { display:flex; align-items:baseline; gap:7px; margin-top:12px; }
-.cdown-num { font-family:var(--mono); font-size:40px; font-weight:700; color:var(--red); line-height:1; }
-.cdown-lbl { font-size:12px; color:var(--red); font-weight:600; opacity:0.75; }
-
-/* ── MATH SECTION ── */
-.math-section { padding:14px 12px; display:flex; flex-direction:column; gap:10px; }
-
-.math-card { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
-.math-card-hdr {
-  padding:11px 14px; border-bottom:1px solid var(--border);
-  font-size:11px; font-weight:600; color:var(--sub);
-  letter-spacing:0.07em; text-transform:uppercase;
-  background:var(--bg);
-}
-.math-rows { display:flex; flex-direction:column; }
-.math-row {
-  display:flex; justify-content:space-between; align-items:flex-start;
-  padding:12px 14px; border-bottom:1px solid var(--border);
-}
-.math-row:last-child { border-bottom:none; }
-.math-label { font-size:13px; color:var(--text); font-weight:500; }
-.math-hint  { font-size:11px; color:var(--muted); margin-top:2px; }
-.math-value { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--text); text-align:right; }
-.math-value.green { color:var(--green); }
-.math-value.red   { color:var(--red); }
-.math-value.amber { color:var(--amber); }
-.math-value.muted { color:var(--muted); }
-
-/* gap visual */
-.gap-visual { padding:16px 14px; display:flex; flex-direction:column; gap:10px; }
-.gap-vis-row { display:flex; align-items:center; gap:10px; }
-.gap-vis-lbl  { font-size:12px; font-weight:500; color:var(--sub); width:96px; flex-shrink:0; }
-.gap-vis-track { flex:1; height:8px; background:var(--dim); border-radius:4px; overflow:hidden; }
-.gap-vis-fill  { height:100%; border-radius:4px; transition:width 0.5s ease; }
-.gap-vis-pct   { font-family:var(--mono); font-size:13px; font-weight:700; width:44px; text-align:right; flex-shrink:0; }
-.gap-divider   { height:1px; background:var(--border); }
-.gap-result-row { display:flex; justify-content:center; align-items:baseline; gap:6px; padding-top:4px; }
-.gap-result-num { font-family:var(--mono); font-size:32px; font-weight:700; }
-.gap-result-num.fire  { color:var(--red); }
-.gap-result-num.watch { color:var(--amber); }
-.gap-result-num.ok    { color:var(--muted); }
-.gap-result-lbl { font-size:12px; color:var(--sub); font-weight:500; }
-
-/* profit grid */
-.profit-grid { display:grid; grid-template-columns:1fr 1fr; }
-.profit-cell { padding:14px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); }
-.profit-cell:nth-child(2n) { border-right:none; }
-.profit-cell:nth-child(3), .profit-cell:nth-child(4) { border-bottom:none; }
-.profit-lbl { font-size:11px; font-weight:500; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:5px; }
-.profit-val { font-family:var(--mono); font-size:20px; font-weight:700; color:var(--text); }
-.profit-val.green { color:var(--green); }
-.profit-val.red   { color:var(--red); }
-
-/* inputs */
-.input-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
-.input-row  { display:flex; justify-content:space-between; align-items:center; }
-.input-lbl  { font-size:13px; font-weight:600; color:var(--text); }
-.input-hint { font-size:11px; color:var(--muted); margin-top:2px; }
-.field-input {
-  background:var(--dim); border:1.5px solid var(--border2); color:var(--text);
-  font-family:var(--mono); font-size:18px; font-weight:700;
-  padding:8px 12px; border-radius:8px; width:120px; text-align:center;
-  transition:border-color 0.15s, background 0.15s;
-}
-.field-input:focus { outline:none; border-color:var(--blue); background:#fff; }
-
-.bottom-pad { height:48px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MLB Lag-Hunter Dashboard - Florida Edition</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0b0e14;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #1f2631;
+            margin-bottom: 30px;
+        }
+        h1 { color: #00ff88; margin-bottom: 5px; }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            background: #161b22;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            background: #1f2631;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        .control-group label { display: block; font-size: 0.8em; color: #8b949e; margin-bottom: 5px; }
+        .control-group input {
+            width: 100%;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .game-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .game-card.alert { border-color: #00ff88; box-shadow: 0 0 15px rgba(0, 255, 136, 0.2); }
+        .game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .team-names { font-size: 1.2em; font-weight: bold; }
+        .badge {
+            background: #238636;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            text-transform: uppercase;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .stat-box { background: #0d1117; padding: 10px; border-radius: 8px; }
+        .stat-label { font-size: 0.7em; color: #8b949e; display: block; }
+        .stat-value { font-size: 1.1em; font-weight: bold; }
+        .action-zone {
+            background: #1f2631;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #30363d;
+        }
+        .action-zone.buy { border-left-color: #00ff88; }
+        .action-zone.sell { border-left-color: #f85149; }
+        .trade-details { display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.9em; }
+        .highlight { color: #00ff88; font-weight: bold; }
+        .btn-dummy {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 10px;
+            width: 100%;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .footer-note { font-size: 0.8em; color: #8b949e; text-align: center; margin-top: 40px; }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <header>
+            <h1>LAG-HUNTER PRO</h1>
+            <p>Florida Sportsbook Latency Arbitrage Monitor</p>
+        </header>
 
-<!-- ══ LIST VIEW ══ -->
-<div class="app" id="list-view">
-  <div class="hdr">
-    <div>
-      <div class="hdr-name">Gap Watcher</div>
-      <div class="hdr-sub">MLB win prob vs. bookie odds</div>
+        <div class="status-bar">
+            <span>📡 Feed: <strong>MLB GUMBO API</strong></span>
+            <span>📱 Target: <strong>Hard Rock Bet</strong></span>
+            <span>⏱️ Latency: <strong>420ms</strong></span>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>STAKE ($)</label>
+                <input type="number" id="stake" value="5.00" step="1.00">
+            </div>
+            <div class="control-group">
+                <label>BUY THRESHOLD (%)</label>
+                <input type="number" id="threshold" value="8.0" step="0.5">
+            </div>
+            <div class="control-group">
+                <label>REFRESH RATE (ms)</label>
+                <input type="number" value="2000">
+            </div>
+        </div>
+
+        <!-- ACTIVE GAME: YANKEES @ RANGERS -->
+        <div class="game-card alert">
+            <div class="game-header">
+                <div class="team-names">NY Yankees @ TX Rangers</div>
+                <div class="badge">Live - Inning 6</div>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <span class="stat-label">TRUTH (API)</span>
+                    <span class="stat-value">68.4%</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">MARKET (HR)</span>
+                    <span class="stat-value">58.8%</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">GAP</span>
+                    <span class="highlight" style="font-size: 1.1em;">+9.6%</span>
+                </div>
+            </div>
+            <div class="action-zone buy">
+                <strong>🚨 BUY SIGNAL DETECTED</strong>
+                <div class="trade-details">
+                    <span>Open Bet On App: <strong class="highlight">-143</strong></span>
+                    <span>Predicted Net Profit: <strong class="highlight">+$1.48</strong></span>
+                </div>
+                <button class="btn-dummy">BET $5.00 NOW (OPEN SLIP)</button>
+            </div>
+        </div>
+
+        <!-- ACTIVE GAME: TB @ CLE -->
+        <div class="game-card">
+            <div class="game-header">
+                <div class="team-names">TB Rays @ CLE Guardians</div>
+                <div class="badge" style="background: #30363d;">Live - Inning 4</div>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <span class="stat-label">TRUTH (API)</span>
+                    <span class="stat-value">51.2%</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">MARKET (HR)</span>
+                    <span class="stat-value">50.0%</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">GAP</span>
+                    <span class="stat-value">+1.2%</span>
+                </div>
+            </div>
+            <div class="action-zone">
+                <strong>NO TRADE DETECTED</strong>
+                <div class="trade-details">
+                    <span>Market is efficient.</span>
+                    <span>Predicted Net: $0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-note">
+            This is a mock dashboard. To execute real-time trades, link this UI to your Python automation script.
+        </div>
     </div>
-    <div class="live-chip"><div class="live-dot"></div>LIVE</div>
-  </div>
-
-  <div class="thresh-bar">
-    <div class="thresh-left">
-      Alert when gap &gt; <input class="thresh-input" id="thresh" value="8" type="text"> %
-    </div>
-    <div class="poll-pill">
-      <div class="poll-bar"><div class="poll-fill" id="poll-fill"></div></div>
-      <span class="poll-lbl" id="poll-lbl">—</span>
-    </div>
-  </div>
-
-  <div class="section-hdr">
-    <div class="section-lbl">Upcoming today</div>
-    <div class="section-count" id="game-count"></div>
-  </div>
-
-  <div class="game-rows" id="game-rows">
-    <div style="padding:24px;text-align:center;font-size:13px;color:var(--muted);">Loading schedule...</div>
-  </div>
-</div>
-
-<!-- ══ DETAIL VIEW ══ -->
-<div class="app detail-view" id="detail-view">
-
-  <div class="detail-back" onclick="goBack()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-    All games
-  </div>
-
-  <div class="detail-hero">
-    <div class="detail-matchup" id="d-matchup">—</div>
-    <div class="detail-meta"   id="d-meta">—</div>
-    <div class="signal-banner idle" id="d-banner">
-      <div class="banner-label idle"  id="d-banner-lbl">MONITORING</div>
-      <div class="banner-action idle" id="d-banner-action">Waiting for data...</div>
-      <div class="banner-why"         id="d-banner-why"></div>
-      <div class="cdown-row" id="d-cdown-row" style="display:none">
-        <div class="cdown-num" id="d-cdown">15</div>
-        <div class="cdown-lbl">seconds — place bet now</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="math-section">
-
-    <!-- Gap visual -->
-    <div class="math-card">
-      <div class="math-card-hdr">The Gap</div>
-      <div class="gap-visual">
-        <div class="gap-vis-row">
-          <div class="gap-vis-lbl">MLB win %</div>
-          <div class="gap-vis-track"><div class="gap-vis-fill" id="d-mlb-bar" style="width:50%;background:var(--blue)"></div></div>
-          <div class="gap-vis-pct" id="d-mlb-pct" style="color:var(--blue)">—</div>
-        </div>
-        <div class="gap-vis-row">
-          <div class="gap-vis-lbl">Book implies</div>
-          <div class="gap-vis-track"><div class="gap-vis-fill" id="d-book-bar" style="width:50%;background:var(--muted)"></div></div>
-          <div class="gap-vis-pct" id="d-book-pct" style="color:var(--muted)">—</div>
-        </div>
-        <div class="gap-divider"></div>
-        <div class="gap-result-row">
-          <div class="gap-result-num ok" id="d-gap-big">—</div>
-          <div class="gap-result-lbl"   id="d-gap-lbl">gap</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Math breakdown -->
-    <div class="math-card">
-      <div class="math-card-hdr">How the numbers work</div>
-      <div class="math-rows">
-        <div class="math-row">
-          <div>
-            <div class="math-label">MLB win probability</div>
-            <div class="math-hint">Official MLB model — updates every pitch</div>
-          </div>
-          <div class="math-value" id="d-mlb-wp">—</div>
-        </div>
-        <div class="math-row">
-          <div>
-            <div class="math-label">Book's moneyline odds</div>
-            <div class="math-hint">What Hard Rock is showing right now</div>
-          </div>
-          <div class="math-value" id="d-book-odds">—</div>
-        </div>
-        <div class="math-row">
-          <div>
-            <div class="math-label">Book's implied probability</div>
-            <div class="math-hint">Odds converted to a win % — what the book thinks</div>
-          </div>
-          <div class="math-value" id="d-book-implied">—</div>
-        </div>
-        <div class="math-row">
-          <div>
-            <div class="math-label">Edge (the gap)</div>
-            <div class="math-hint">MLB% minus Book% — positive means you have an edge</div>
-          </div>
-          <div class="math-value muted" id="d-edge">—</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Profit -->
-    <div class="math-card">
-      <div class="math-card-hdr">If you bet now</div>
-      <div class="profit-grid">
-        <div class="profit-cell">
-          <div class="profit-lbl">Your stake</div>
-          <div class="profit-val" id="d-stake-disp">$5.00</div>
-        </div>
-        <div class="profit-cell">
-          <div class="profit-lbl">Gross if win</div>
-          <div class="profit-val" id="d-gross">—</div>
-        </div>
-        <div class="profit-cell">
-          <div class="profit-lbl">Predicted net</div>
-          <div class="profit-val green" id="d-net">—</div>
-        </div>
-        <div class="profit-cell">
-          <div class="profit-lbl">Edge value</div>
-          <div class="profit-val" id="d-edge-val">—</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Inputs -->
-    <div class="input-card">
-      <div class="input-row">
-        <div>
-          <div class="input-lbl">Hard Rock ML odds</div>
-          <div class="input-hint" id="d-implied-line">Implied: —</div>
-        </div>
-        <input class="field-input" id="d-odds-input" type="text" placeholder="-110" oninput="onDetailChange()">
-      </div>
-    </div>
-
-    <div class="input-card">
-      <div class="input-row">
-        <div>
-          <div class="input-lbl">Your stake</div>
-          <div class="input-hint">Updates profit calc above</div>
-        </div>
-        <input class="field-input" id="d-stake-input" type="text" value="5.00" oninput="onDetailChange()">
-      </div>
-    </div>
-
-  </div>
-  <div class="bottom-pad"></div>
-</div>
-
-<script>
-const TARGET_BOOK = "Hard Rock Bet (FL)";
-const POLL_MS = 2000;
-let games = [], activeIdx = null, betTimer = null;
-let pollTimer = null, progTimer = null, prog = 0;
-
-function odds_to_prob(odds) {
-  const n = parseFloat(odds);
-  if (isNaN(n) || n === 0) return null;
-  return n < 0 ? (Math.abs(n)/(Math.abs(n)+100))*100 : (100/(n+100))*100;
-}
-
-function calculate_trade(stake, buy_odds, truth) {
-  const bp = odds_to_prob(buy_odds);
-  if (!bp) return null;
-  const profit = buy_odds < 0 ? stake/(Math.abs(buy_odds)/100) : stake*(buy_odds/100);
-  const gross = stake + profit;
-  return { gross, net: gross*((truth-bp)/100), edge_pct: truth-bp };
-}
-
-function fmt12(iso) {
-  return new Date(iso).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
-}
-
-(async function init() {
-  await loadSlate();
-  startPoll();
-})();
-
-async function loadSlate() {
-  try {
-    const today = new Date().toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'});
-    const r = await fetch(`https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${today}`);
-    const d = await r.json();
-    const raw = d?.dates?.[0]?.games || [];
-    games = raw.map(g => ({
-      pk:        g.gamePk,
-      away:      g.teams.away.team.name,
-      home:      g.teams.home.team.name,
-      awayAbr:   g.teams.away.team.name.split(' ').pop(),
-      homeAbr:   g.teams.home.team.name.split(' ').pop(),
-      time:      fmt12(g.gameDate),
-      status:    g.status.detailedState,
-      isLive:    g.status.detailedState === 'In Progress',
-      isFinal:   ['Final','Game Over','Completed'].includes(g.status.detailedState),
-      awayScore: g.teams.away.score ?? null,
-      homeScore: g.teams.home.score ?? null,
-      truth: null, odds: -110,
-    }));
-    document.getElementById('game-count').textContent = games.length;
-    renderList();
-  } catch(e) {
-    games = [
-      {pk:'',awayAbr:'TB', homeAbr:'CLE',away:'Tampa Bay Rays',   home:'Cleveland Guardians',   time:'6:10 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:-115},
-      {pk:'',awayAbr:'HOU',homeAbr:'BAL',away:'Houston Astros',   home:'Baltimore Orioles',     time:'6:35 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:-130},
-      {pk:'',awayAbr:'COL',homeAbr:'CIN',away:'Colorado Rockies', home:'Cincinnati Reds',       time:'6:40 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:+145},
-      {pk:'',awayAbr:'STL',homeAbr:'PIT',away:'St. Louis Cardinals',home:'Pittsburgh Pirates',  time:'6:40 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:-130},
-      {pk:'',awayAbr:'SF', homeAbr:'PHI',away:'San Francisco Giants',home:'Philadelphia Phillies',time:'6:40 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:+110},
-      {pk:'',awayAbr:'BOS',homeAbr:'TOR',away:'Boston Red Sox',   home:'Toronto Blue Jays',     time:'7:07 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:-120},
-      {pk:'',awayAbr:'WSH',homeAbr:'NYM',away:'Washington Nationals',home:'New York Mets',      time:'7:10 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:+175},
-      {pk:'',awayAbr:'DET',homeAbr:'ATL',away:'Detroit Tigers',   home:'Atlanta Braves',        time:'7:15 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:-160},
-      {pk:'',awayAbr:'SEA',homeAbr:'MIN',away:'Seattle Mariners', home:'Minnesota Twins',       time:'7:40 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:-105},
-      {pk:'',awayAbr:'LAA',homeAbr:'CWS',away:'Los Angeles Angels',home:'Chicago White Sox',   time:'7:40 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:-200},
-      {pk:'',awayAbr:'ARI',homeAbr:'MIL',away:'Arizona Diamondbacks',home:'Milwaukee Brewers', time:'7:40 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:+115},
-      {pk:'287579',awayAbr:'NYY',homeAbr:'TEX',away:'New York Yankees',home:'Texas Rangers',   time:'8:05 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:-125},
-    ];
-    document.getElementById('game-count').textContent = games.length;
-    renderList();
-  }
-}
-
-function renderList() {
-  const el = document.getElementById('game-rows');
-  const thresh = parseFloat(document.getElementById('thresh').value) || 8;
-  if (!games.length) { el.innerHTML = '<div style="padding:24px;text-align:center;font-size:13px;color:var(--muted);">No games today.</div>'; return; }
-  el.innerHTML = games.map((g,i) => {
-    const mp  = odds_to_prob(g.odds);
-    const gap = (g.truth !== null && mp !== null) ? g.truth - mp : null;
-    const gapStr = gap !== null ? (gap>=0?'+':'')+gap.toFixed(1)+'%' : '—';
-    const gapCls = gap===null ? 'gap-ok' : gap>=thresh ? 'gap-fire' : gap>=thresh*0.6 ? 'gap-watch' : (gap<1&&g.truth>80) ? 'gap-sell' : 'gap-ok';
-    const rowCls = gap!==null&&gap>=thresh ? 'signal-buy' : (gap!==null&&gap<1&&g.truth>80) ? 'signal-sell' : gap!==null&&gap>=thresh*0.6 ? 'signal-watch' : '';
-    const sig = gap!==null&&gap>=thresh ? '🚨 BUY SIGNAL' : (gap!==null&&gap<1&&g.truth>80) ? '✅ SELL' : gap!==null&&gap>=thresh*0.6 ? '👀 WATCH' : '';
-    const stCls = g.isLive ? 'status-live' : g.isFinal ? 'status-final' : 'status-pre';
-    const stTxt = g.isLive ? `LIVE ${g.awayScore??0}–${g.homeScore??0}` : g.isFinal ? `FINAL ${g.awayScore}–${g.homeScore}` : 'UPCOMING';
-    return `<div class="game-row ${rowCls}" onclick="openDetail(${i})">
-      <div>
-        <div class="row-matchup">${g.awayAbr} @ ${g.homeAbr}</div>
-        <div class="row-meta">
-          <span class="row-time">${g.time}</span>
-          <span class="row-status ${stCls}">${stTxt}</span>
-        </div>
-      </div>
-      <div class="row-right">
-        <div class="row-gap ${gapCls}">${gapStr}</div>
-        ${sig ? `<div class="row-signal">${sig}</div>` : ''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function startPoll() {
-  doPoll();
-  pollTimer = setInterval(doPoll, POLL_MS);
-  progTimer = setInterval(() => {
-    prog = Math.min(100, prog + (100/(POLL_MS/50)));
-    document.getElementById('poll-fill').style.width = prog+'%';
-    document.getElementById('poll-lbl').textContent = ((POLL_MS-prog*POLL_MS/100)/1000).toFixed(1)+'s';
-  }, 50);
-}
-
-async function doPoll() {
-  prog = 0;
-  for (let i=0; i<games.length; i++) {
-    if (!games[i].pk) continue;
-    try {
-      const r = await fetch(`https://statsapi.mlb.com/api/v1.1/game/${games[i].pk}/feed/live`);
-      const d = await r.json();
-      let wp = d?.liveData?.plays?.currentPlay?.about?.homeWinProbability ?? null;
-      if (wp===null) { const m=JSON.stringify(d).match(/"homeWinProbability"\s*:\s*([\d.]+)/); if(m) wp=parseFloat(m[1]); }
-      if (wp!==null) games[i].truth = wp>1?wp:wp*100;
-    } catch(e) {}
-  }
-  renderList();
-  if (activeIdx!==null) refreshDetail();
-}
-
-function openDetail(i) {
-  activeIdx = i;
-  document.getElementById('list-view').style.display = 'none';
-  document.getElementById('detail-view').classList.add('active');
-  const g = games[i];
-  document.getElementById('d-matchup').textContent = `${g.awayAbr} @ ${g.homeAbr}`;
-  document.getElementById('d-meta').textContent = `${g.away} vs ${g.home} · ${g.time}`;
-  document.getElementById('d-odds-input').value = g.odds;
-  refreshDetail();
-}
-
-function goBack() {
-  activeIdx = null; clearBetTimer();
-  document.getElementById('detail-view').classList.remove('active');
-  document.getElementById('list-view').style.display = 'block';
-}
-
-function onDetailChange() {
-  if (activeIdx===null) return;
-  const n = parseFloat(document.getElementById('d-odds-input').value);
-  if (!isNaN(n)&&n!==0) games[activeIdx].odds = n;
-  refreshDetail();
-}
-
-function refreshDetail() {
-  if (activeIdx===null) return;
-  const g      = games[activeIdx];
-  const thresh = parseFloat(document.getElementById('thresh').value)||8;
-  const stake  = parseFloat(document.getElementById('d-stake-input').value)||5;
-  const odds   = parseFloat(document.getElementById('d-odds-input').value)||g.odds;
-  const mp     = odds_to_prob(odds);
-  const truth  = g.truth;
-
-  document.getElementById('d-implied-line').textContent = mp ? `Implied: ${mp.toFixed(1)}% win probability` : 'Implied: —';
-  document.getElementById('d-stake-disp').textContent   = '$'+stake.toFixed(2);
-
-  if (!truth || !mp) {
-    setIdle('Win probability not in feed yet — game may be pregame.');
-    ['d-mlb-wp','d-book-odds','d-book-implied','d-edge','d-gross','d-net','d-edge-val'].forEach(id=>document.getElementById(id).textContent='—');
-    document.getElementById('d-book-odds').textContent = (odds>0?'+':'')+odds;
-    document.getElementById('d-book-implied').textContent = mp?mp.toFixed(1)+'%':'—';
-    return;
-  }
-
-  const gap   = truth - mp;
-  const trade = calculate_trade(stake, odds, truth);
-
-  // bars
-  document.getElementById('d-mlb-bar').style.width  = Math.min(100,truth).toFixed(0)+'%';
-  document.getElementById('d-book-bar').style.width = Math.min(100,mp).toFixed(0)+'%';
-  document.getElementById('d-mlb-pct').textContent  = truth.toFixed(1)+'%';
-  document.getElementById('d-book-pct').textContent = mp.toFixed(1)+'%';
-
-  const gapEl = document.getElementById('d-gap-big');
-  gapEl.textContent = (gap>=0?'+':'')+gap.toFixed(1)+'%';
-  gapEl.className   = 'gap-result-num '+(gap>=thresh?'fire':gap>=thresh*0.6?'watch':'ok');
-  document.getElementById('d-gap-lbl').textContent = gap>=thresh ? '🔥 above threshold — bet!' : `need +${(thresh-gap).toFixed(1)}% more to fire`;
-
-  document.getElementById('d-mlb-wp').textContent       = truth.toFixed(1)+'%';
-  document.getElementById('d-book-odds').textContent    = (odds>0?'+':'')+odds;
-  document.getElementById('d-book-implied').textContent = mp.toFixed(1)+'%';
-  const edgeEl = document.getElementById('d-edge');
-  edgeEl.textContent = (gap>=0?'+':'')+gap.toFixed(1)+'%';
-  edgeEl.className   = 'math-value '+(gap>=thresh?'green':gap>=thresh*0.6?'amber':'muted');
-
-  if (trade) {
-    document.getElementById('d-gross').textContent   = '$'+trade.gross.toFixed(2);
-    document.getElementById('d-net').textContent     = (trade.net>=0?'+$':'-$')+Math.abs(trade.net).toFixed(2);
-    document.getElementById('d-net').className       = 'profit-val '+(trade.net>0?'green':'red');
-    document.getElementById('d-edge-val').textContent= (trade.edge_pct>=0?'+':'')+trade.edge_pct.toFixed(1)+'%';
-  }
-
-  if (gap >= thresh)                setDetailBuy(g,gap,truth,mp,odds,stake,trade);
-  else if (gap<1.0 && truth>80.0)   setDetailSell(g,gap,truth,trade);
-  else if (gap >= thresh*0.6)       setDetailWatch(g,gap,thresh,truth,mp);
-  else                              setIdle(`No edge. Gap is ${gap.toFixed(1)}% — need ${(thresh-gap).toFixed(1)}% more to fire.`);
-}
-
-function setDetailBuy(g,gap,truth,mp,odds,stake,trade) {
-  set('d-banner','signal-banner buy');
-  set('d-banner-lbl','banner-label buy','🚨 BUY SIGNAL');
-  set('d-banner-action','banner-action buy',`Bet ${g.homeAbr} Moneyline`);
-  document.getElementById('d-banner-why').innerHTML =
-    `MLB says <strong>${g.homeAbr} wins ${truth.toFixed(1)}%</strong> from here.<br>
-     Hard Rock only implies <strong>${mp.toFixed(1)}%</strong> — <span class="hl-red">+${gap.toFixed(1)}% edge in your favor.</span><br><br>
-     → Open Hard Rock · Tap <strong>${g.homeAbr} ML (${(odds>0?'+':'')+odds})</strong> · Place <strong>$${stake.toFixed(2)}</strong>`;
-  startBetTimer();
-}
-
-function setDetailSell(g,gap,truth,trade) {
-  clearBetTimer();
-  set('d-banner','signal-banner sell');
-  set('d-banner-lbl','banner-label sell','✅ SELL SIGNAL');
-  set('d-banner-action','banner-action sell','Cash Out for profit');
-  document.getElementById('d-banner-why').innerHTML =
-    `Gap closed (${gap.toFixed(1)}%) and MLB WP is <span class="hl-grn">${truth.toFixed(1)}%</span> — strong position.<br><br>
-     → Open Hard Rock · Find your bet · Tap <strong>"Cash Out"</strong>`;
-}
-
-function setDetailWatch(g,gap,thresh,truth,mp) {
-  clearBetTimer();
-  set('d-banner','signal-banner watch');
-  set('d-banner-lbl','banner-label watch','👀 WATCH');
-  set('d-banner-action','banner-action watch',`Gap is +${gap.toFixed(1)}% — building`);
-  document.getElementById('d-banner-why').innerHTML =
-    `MLB: <strong>${truth.toFixed(1)}%</strong> · Hard Rock implies: <strong>${mp.toFixed(1)}%</strong><br>
-     Need <span class="hl-amb">${(thresh-gap).toFixed(1)}% more</span> to trigger BUY.<br>
-     Have Hard Rock open. Next poll in 2s.`;
-}
-
-function setIdle(msg) {
-  clearBetTimer();
-  set('d-banner','signal-banner idle');
-  set('d-banner-lbl','banner-label idle','MONITORING');
-  set('d-banner-action','banner-action idle','No edge detected');
-  document.getElementById('d-banner-why').textContent = msg;
-}
-
-function set(id, cls, txt) {
-  const el = document.getElementById(id);
-  if (cls) el.className = cls;
-  if (txt !== undefined) el.textContent = txt;
-}
-
-function startBetTimer() {
-  if (betTimer) return;
-  let s = 15;
-  document.getElementById('d-cdown-row').style.display = 'flex';
-  document.getElementById('d-cdown').textContent = s;
-  betTimer = setInterval(() => {
-    s--;
-    document.getElementById('d-cdown').textContent = s;
-    if (s<=0) clearBetTimer();
-  }, 1000);
-}
-
-function clearBetTimer() {
-  if (betTimer) { clearInterval(betTimer); betTimer=null; }
-  const r = document.getElementById('d-cdown-row');
-  if (r) r.style.display = 'none';
-}
-
-document.getElementById('thresh').addEventListener('input', () => {
-  renderList();
-  if (activeIdx!==null) refreshDetail();
-});
-</script>
 </body>
 </html>
