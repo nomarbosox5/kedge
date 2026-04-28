@@ -3,179 +3,418 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MLB Edge Bot</title>
+<title>Gap Watcher</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
 * { box-sizing:border-box; margin:0; padding:0; }
-body {
-  font-family:'JetBrains Mono',monospace;
-  background:#0e0e0e; color:#c8c8c8;
-  min-height:100vh; padding:20px;
-  max-width:640px; margin:0 auto;
+
+:root {
+  --bg:       #f0f2f7;
+  --surface:  #ffffff;
+  --card:     #ffffff;
+  --border:   #dde1ec;
+  --border2:  #c8cedd;
+  --text:     #0f1120;
+  --sub:      #5a6180;
+  --muted:    #8a92aa;
+  --dim:      #e4e7f0;
+  --green:    #00a85a;
+  --green-lt: #e8f8f0;
+  --green-bd: #99dfc0;
+  --red:      #e8203a;
+  --red-lt:   #fef0f2;
+  --red-bd:   #f5aab5;
+  --amber:    #d97706;
+  --amber-lt: #fef7e8;
+  --amber-bd: #f5d58a;
+  --blue:     #2563eb;
+  --blue-lt:  #eff4ff;
+  --sans:     'Inter', sans-serif;
+  --mono:     'JetBrains Mono', monospace;
 }
 
-.hdr { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1a1a1a; padding-bottom:12px; margin-bottom:20px; }
-.hdr-title { font-size:11px; color:#444; letter-spacing:0.18em; text-transform:uppercase; }
-.pill { display:flex; align-items:center; gap:6px; font-size:10px; color:#444; }
-.dot { width:7px; height:7px; border-radius:50%; background:#222; flex-shrink:0; }
-.dot.on { background:#00e676; animation:blink 1.4s infinite; }
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+body { font-family:var(--sans); background:var(--bg); color:var(--text); min-height:100vh; }
 
-.controls { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:16px; }
-.field { display:flex; flex-direction:column; gap:4px; }
-.field label { font-size:9px; color:#444; letter-spacing:0.14em; text-transform:uppercase; }
-.field input {
-  background:#141414; border:1px solid #1e1e1e; color:#e0e0e0;
-  font-family:'JetBrains Mono',monospace; font-size:16px;
-  padding:9px 10px; border-radius:4px; width:100%;
+.app { max-width:480px; margin:0 auto; min-height:100vh; }
+
+/* ── HEADER ── */
+.hdr {
+  position:sticky; top:0; z-index:10;
+  background:rgba(255,255,255,0.95);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+  padding:14px 18px;
+  display:flex; justify-content:space-between; align-items:center;
 }
-.field input:focus { outline:none; border-color:#555; }
-
-.poll-row { display:flex; align-items:center; gap:10px; margin-bottom:20px; }
-.poll-track { flex:1; height:2px; background:#1a1a1a; border-radius:1px; overflow:hidden; }
-.poll-fill { height:100%; background:#00e676; border-radius:1px; transition:width 0.05s linear; }
-.poll-lbl { font-size:10px; color:#333; white-space:nowrap; }
-
-.slate-hdr { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-.slate-lbl { font-size:9px; color:#444; letter-spacing:0.15em; text-transform:uppercase; }
-.slate-sub { font-size:9px; color:#2a2a2a; }
-
-.game-card {
-  background:#111; border:1px solid #1a1a1a; border-radius:6px;
-  margin-bottom:8px; overflow:hidden; transition:border-color 0.2s;
+.hdr-name { font-size:17px; font-weight:700; color:var(--text); }
+.hdr-sub  { font-size:11px; color:var(--muted); margin-top:1px; }
+.live-chip {
+  display:flex; align-items:center; gap:5px;
+  font-size:10px; font-weight:600; color:var(--green);
+  background:var(--green-lt); border:1px solid var(--green-bd);
+  padding:4px 10px; border-radius:20px; letter-spacing:0.06em;
 }
-.game-card.buy   { border-color:#ff1744; animation:flash 0.5s ease; }
-.game-card.sell  { border-color:#00e676; }
-.game-card.watch { border-color:#ff9100; }
-@keyframes flash{0%{box-shadow:0 0 0 0 rgba(255,23,68,0.5)}100%{box-shadow:0 0 0 16px rgba(255,23,68,0)}}
+.live-dot { width:5px; height:5px; border-radius:50%; background:var(--green); animation:blink 1.4s infinite; }
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.25}}
 
-.card-top { display:flex; justify-content:space-between; align-items:center; padding:9px 14px; border-bottom:1px solid #1a1a1a; }
-.card-name { font-size:15px; font-weight:700; color:#e0e0e0; }
-.card-meta { font-size:9px; color:#333; margin-top:2px; }
-.card-badge { font-size:10px; letter-spacing:0.1em; }
-.badge-buy   { color:#ff1744; }
-.badge-sell  { color:#00e676; }
-.badge-watch { color:#ff9100; }
-.badge-idle  { color:#333; }
-
-.card-body { padding:12px 14px; }
-.nums { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:10px; }
-.num-box { text-align:center; }
-.num-val { font-size:16px; font-weight:700; color:#e0e0e0; line-height:1; }
-.num-val.green  { color:#00e676; }
-.num-val.orange { color:#ff9100; }
-.num-val.red    { color:#ff1744; }
-.num-val.dim    { color:#444; }
-.num-lbl { font-size:8px; color:#444; margin-top:3px; letter-spacing:0.1em; text-transform:uppercase; }
-
-.gap-track { height:3px; background:#1a1a1a; border-radius:2px; overflow:hidden; margin-bottom:10px; }
-.gap-fill  { height:100%; border-radius:2px; transition:width 0.5s ease; }
-
-.action { font-size:12px; line-height:1.85; padding:10px 12px; border-radius:4px; }
-.action.buy   { background:#140000; color:#ff5252; }
-.action.sell  { background:#001409; color:#00e676; }
-.action.watch { background:#0e0800; color:#ff9100; }
-.action.idle  { display:none; }
-.action strong { color:#fff; }
-
-.cdown-wrap { text-align:center; padding:4px 0 8px; }
-.cdown-num  { font-size:52px; font-weight:700; color:#ff1744; line-height:1; }
-.cdown-lbl  { font-size:9px; color:#ff1744; letter-spacing:0.18em; opacity:0.65; }
-
-.odds-row { display:flex; align-items:center; gap:8px; margin-top:8px; }
-.odds-row label { font-size:9px; color:#444; letter-spacing:0.1em; text-transform:uppercase; white-space:nowrap; }
-.odds-row input {
-  background:#0e0e0e; border:1px solid #222; color:#e0e0e0;
-  font-family:'JetBrains Mono',monospace; font-size:14px;
-  padding:5px 8px; border-radius:3px; width:90px; text-align:center;
+/* ── THRESH BAR ── */
+.thresh-bar {
+  background:var(--surface); border-bottom:1px solid var(--border);
+  padding:10px 18px; display:flex; align-items:center; justify-content:space-between;
 }
-.odds-row input:focus { outline:none; border-color:#ff9100; }
-.odds-row .implied { font-size:10px; color:#444; }
+.thresh-left { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--sub); font-weight:500; }
+.thresh-input {
+  background:var(--dim); border:1px solid var(--border2); color:var(--text);
+  font-family:var(--mono); font-size:13px; font-weight:700;
+  padding:4px 8px; border-radius:5px; width:46px; text-align:center;
+}
+.thresh-input:focus { outline:none; border-color:var(--blue); background:#fff; }
+.poll-pill { display:flex; align-items:center; gap:7px; }
+.poll-bar  { width:56px; height:3px; background:var(--dim); border-radius:2px; overflow:hidden; }
+.poll-fill { height:100%; background:var(--green); border-radius:2px; transition:width 0.05s linear; }
+.poll-lbl  { font-size:10px; color:var(--muted); font-family:var(--mono); }
 
-.log-hdr { display:flex; justify-content:space-between; font-size:9px; color:#333; letter-spacing:0.12em; text-transform:uppercase; margin-bottom:6px; }
-.log-hdr button { background:none; border:none; color:#2a2a2a; font-family:'JetBrains Mono',monospace; font-size:9px; cursor:pointer; }
-.log-hdr button:hover{color:#555;}
-.log-box { border:1px solid #1a1a1a; border-radius:4px; max-height:180px; overflow-y:auto; }
-.log-row { display:flex; gap:10px; padding:5px 10px; border-bottom:1px solid #141414; font-size:10px; }
-.log-row:last-child{border-bottom:none;}
-.log-t { color:#2a2a2a; white-space:nowrap; flex-shrink:0; }
-.log-m { color:#333; }
-.log-m.buy  { color:#ff5252; }
-.log-m.sell { color:#00e676; }
-.log-m.watch{ color:#ff9100; }
-.log-empty  { padding:12px 10px; font-size:10px; color:#2a2a2a; }
+/* ── SECTION HDR ── */
+.section-hdr {
+  padding:16px 18px 10px;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.section-lbl   { font-size:11px; font-weight:600; color:var(--muted); letter-spacing:0.08em; text-transform:uppercase; }
+.section-count { font-size:12px; font-weight:600; color:var(--sub); }
+
+/* ── GAME ROWS ── */
+.game-rows { padding:0 12px 20px; display:flex; flex-direction:column; gap:6px; }
+
+.game-row {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:12px; padding:14px 16px;
+  display:flex; justify-content:space-between; align-items:center;
+  cursor:pointer; transition:all 0.15s;
+  -webkit-tap-highlight-color:transparent;
+  box-shadow:0 1px 3px rgba(0,0,0,0.04);
+}
+.game-row:hover         { border-color:var(--border2); box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+.game-row.signal-buy    { border-color:var(--red-bd);   background:var(--red-lt); }
+.game-row.signal-sell   { border-color:var(--green-bd); background:var(--green-lt); }
+.game-row.signal-watch  { border-color:var(--amber-bd); background:var(--amber-lt); }
+
+.row-matchup { font-size:16px; font-weight:700; color:var(--text); letter-spacing:-0.01em; }
+.row-meta    { display:flex; align-items:center; gap:8px; margin-top:4px; }
+.row-time    { font-size:12px; font-weight:500; color:var(--sub); }
+.row-status  { font-size:10px; font-weight:600; padding:2px 7px; border-radius:4px; }
+.status-live  { color:var(--green); background:var(--green-lt); border:1px solid var(--green-bd); }
+.status-pre   { color:var(--amber); background:var(--amber-lt); }
+.status-final { color:var(--muted); background:var(--dim); }
+
+.row-right    { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+.row-gap      { font-family:var(--mono); font-size:14px; font-weight:700; padding:4px 9px; border-radius:6px; }
+.gap-fire     { color:var(--red);   background:var(--red-lt);   border:1px solid var(--red-bd); }
+.gap-watch    { color:var(--amber); background:var(--amber-lt); border:1px solid var(--amber-bd); }
+.gap-sell     { color:var(--green); background:var(--green-lt); border:1px solid var(--green-bd); }
+.gap-ok       { color:var(--muted); background:var(--dim); border:1px solid var(--border); }
+.row-signal   { font-size:10px; font-weight:600; color:var(--sub); }
+
+/* ── DETAIL VIEW ── */
+.detail-view { display:none; flex-direction:column; min-height:100vh; background:var(--bg); }
+.detail-view.active { display:flex; }
+
+.detail-back {
+  display:flex; align-items:center; gap:8px;
+  padding:13px 18px; border-bottom:1px solid var(--border);
+  cursor:pointer; font-size:13px; font-weight:500; color:var(--sub);
+  background:var(--surface);
+}
+.detail-back:hover { color:var(--text); }
+.detail-back svg { width:16px; height:16px; }
+
+.detail-hero {
+  background:var(--surface); border-bottom:1px solid var(--border); padding:18px;
+}
+.detail-matchup { font-size:22px; font-weight:700; color:var(--text); letter-spacing:-0.02em; margin-bottom:3px; }
+.detail-meta    { font-size:12px; color:var(--sub); margin-bottom:14px; }
+
+/* signal banner */
+.signal-banner { border-radius:12px; padding:16px; }
+.signal-banner.buy   { background:var(--red-lt);   border:1.5px solid var(--red-bd); }
+.signal-banner.sell  { background:var(--green-lt); border:1.5px solid var(--green-bd); }
+.signal-banner.watch { background:var(--amber-lt); border:1.5px solid var(--amber-bd); }
+.signal-banner.idle  { background:var(--dim);      border:1px solid var(--border); }
+
+.banner-label { font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; margin-bottom:5px; }
+.banner-label.buy   { color:var(--red); }
+.banner-label.sell  { color:var(--green); }
+.banner-label.watch { color:var(--amber); }
+.banner-label.idle  { color:var(--muted); }
+
+.banner-action { font-size:19px; font-weight:700; letter-spacing:-0.01em; margin-bottom:8px; line-height:1.2; }
+.banner-action.buy   { color:var(--red); }
+.banner-action.sell  { color:var(--green); }
+.banner-action.watch { color:var(--amber); }
+.banner-action.idle  { color:var(--muted); }
+
+.banner-why { font-size:13px; color:var(--sub); line-height:1.7; }
+.banner-why strong   { color:var(--text); font-weight:600; }
+.banner-why .hl-red  { color:var(--red);   font-weight:700; }
+.banner-why .hl-grn  { color:var(--green); font-weight:700; }
+.banner-why .hl-amb  { color:var(--amber); font-weight:700; }
+
+.cdown-row { display:flex; align-items:baseline; gap:7px; margin-top:12px; }
+.cdown-num { font-family:var(--mono); font-size:40px; font-weight:700; color:var(--red); line-height:1; }
+.cdown-lbl { font-size:12px; color:var(--red); font-weight:600; opacity:0.75; }
+
+/* ── MATH SECTION ── */
+.math-section { padding:14px 12px; display:flex; flex-direction:column; gap:10px; }
+
+.math-card { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+.math-card-hdr {
+  padding:11px 14px; border-bottom:1px solid var(--border);
+  font-size:11px; font-weight:600; color:var(--sub);
+  letter-spacing:0.07em; text-transform:uppercase;
+  background:var(--bg);
+}
+.math-rows { display:flex; flex-direction:column; }
+.math-row {
+  display:flex; justify-content:space-between; align-items:flex-start;
+  padding:12px 14px; border-bottom:1px solid var(--border);
+}
+.math-row:last-child { border-bottom:none; }
+.math-label { font-size:13px; color:var(--text); font-weight:500; }
+.math-hint  { font-size:11px; color:var(--muted); margin-top:2px; }
+.math-value { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--text); text-align:right; }
+.math-value.green { color:var(--green); }
+.math-value.red   { color:var(--red); }
+.math-value.amber { color:var(--amber); }
+.math-value.muted { color:var(--muted); }
+
+/* gap visual */
+.gap-visual { padding:16px 14px; display:flex; flex-direction:column; gap:10px; }
+.gap-vis-row { display:flex; align-items:center; gap:10px; }
+.gap-vis-lbl  { font-size:12px; font-weight:500; color:var(--sub); width:96px; flex-shrink:0; }
+.gap-vis-track { flex:1; height:8px; background:var(--dim); border-radius:4px; overflow:hidden; }
+.gap-vis-fill  { height:100%; border-radius:4px; transition:width 0.5s ease; }
+.gap-vis-pct   { font-family:var(--mono); font-size:13px; font-weight:700; width:44px; text-align:right; flex-shrink:0; }
+.gap-divider   { height:1px; background:var(--border); }
+.gap-result-row { display:flex; justify-content:center; align-items:baseline; gap:6px; padding-top:4px; }
+.gap-result-num { font-family:var(--mono); font-size:32px; font-weight:700; }
+.gap-result-num.fire  { color:var(--red); }
+.gap-result-num.watch { color:var(--amber); }
+.gap-result-num.ok    { color:var(--muted); }
+.gap-result-lbl { font-size:12px; color:var(--sub); font-weight:500; }
+
+/* profit grid */
+.profit-grid { display:grid; grid-template-columns:1fr 1fr; }
+.profit-cell { padding:14px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); }
+.profit-cell:nth-child(2n) { border-right:none; }
+.profit-cell:nth-child(3), .profit-cell:nth-child(4) { border-bottom:none; }
+.profit-lbl { font-size:11px; font-weight:500; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:5px; }
+.profit-val { font-family:var(--mono); font-size:20px; font-weight:700; color:var(--text); }
+.profit-val.green { color:var(--green); }
+.profit-val.red   { color:var(--red); }
+
+/* inputs */
+.input-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+.input-row  { display:flex; justify-content:space-between; align-items:center; }
+.input-lbl  { font-size:13px; font-weight:600; color:var(--text); }
+.input-hint { font-size:11px; color:var(--muted); margin-top:2px; }
+.field-input {
+  background:var(--dim); border:1.5px solid var(--border2); color:var(--text);
+  font-family:var(--mono); font-size:18px; font-weight:700;
+  padding:8px 12px; border-radius:8px; width:120px; text-align:center;
+  transition:border-color 0.15s, background 0.15s;
+}
+.field-input:focus { outline:none; border-color:var(--blue); background:#fff; }
+
+.bottom-pad { height:48px; }
 </style>
 </head>
 <body>
 
-<div class="hdr">
-  <div class="hdr-title">MLB Edge Bot — Hard Rock Bet (FL)</div>
-  <div class="pill"><div class="dot on" id="dot"></div><span id="dot-lbl">starting...</span></div>
-</div>
-
-<div class="controls">
-  <div class="field">
-    <label>Stake ($)</label>
-    <input id="stake" value="5.00" type="text">
+<!-- ══ LIST VIEW ══ -->
+<div class="app" id="list-view">
+  <div class="hdr">
+    <div>
+      <div class="hdr-name">Gap Watcher</div>
+      <div class="hdr-sub">MLB win prob vs. bookie odds</div>
+    </div>
+    <div class="live-chip"><div class="live-dot"></div>LIVE</div>
   </div>
-  <div class="field">
-    <label>Gap Threshold (%)</label>
-    <input id="threshold" value="8.0" type="text">
+
+  <div class="thresh-bar">
+    <div class="thresh-left">
+      Alert when gap &gt; <input class="thresh-input" id="thresh" value="8" type="text"> %
+    </div>
+    <div class="poll-pill">
+      <div class="poll-bar"><div class="poll-fill" id="poll-fill"></div></div>
+      <span class="poll-lbl" id="poll-lbl">—</span>
+    </div>
   </div>
-  <div class="field">
-    <label>Poll (sec)</label>
-    <input id="poll-interval" value="2" type="text">
+
+  <div class="section-hdr">
+    <div class="section-lbl">Upcoming today</div>
+    <div class="section-count" id="game-count"></div>
+  </div>
+
+  <div class="game-rows" id="game-rows">
+    <div style="padding:24px;text-align:center;font-size:13px;color:var(--muted);">Loading schedule...</div>
   </div>
 </div>
 
-<div class="poll-row">
-  <div class="poll-track"><div class="poll-fill" id="poll-fill" style="width:0%"></div></div>
-  <div class="poll-lbl" id="poll-lbl">loading games...</div>
-</div>
+<!-- ══ DETAIL VIEW ══ -->
+<div class="app detail-view" id="detail-view">
 
-<div class="slate-hdr">
-  <div class="slate-lbl">Tonight's Slate</div>
-  <div class="slate-sub" id="slate-sub">fetching from MLB...</div>
-</div>
-<div id="slate"></div>
+  <div class="detail-back" onclick="goBack()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    All games
+  </div>
 
-<div class="log-hdr">
-  <span>Engine log</span>
-  <button onclick="clearLog()">clear</button>
+  <div class="detail-hero">
+    <div class="detail-matchup" id="d-matchup">—</div>
+    <div class="detail-meta"   id="d-meta">—</div>
+    <div class="signal-banner idle" id="d-banner">
+      <div class="banner-label idle"  id="d-banner-lbl">MONITORING</div>
+      <div class="banner-action idle" id="d-banner-action">Waiting for data...</div>
+      <div class="banner-why"         id="d-banner-why"></div>
+      <div class="cdown-row" id="d-cdown-row" style="display:none">
+        <div class="cdown-num" id="d-cdown">15</div>
+        <div class="cdown-lbl">seconds — place bet now</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="math-section">
+
+    <!-- Gap visual -->
+    <div class="math-card">
+      <div class="math-card-hdr">The Gap</div>
+      <div class="gap-visual">
+        <div class="gap-vis-row">
+          <div class="gap-vis-lbl">MLB win %</div>
+          <div class="gap-vis-track"><div class="gap-vis-fill" id="d-mlb-bar" style="width:50%;background:var(--blue)"></div></div>
+          <div class="gap-vis-pct" id="d-mlb-pct" style="color:var(--blue)">—</div>
+        </div>
+        <div class="gap-vis-row">
+          <div class="gap-vis-lbl">Book implies</div>
+          <div class="gap-vis-track"><div class="gap-vis-fill" id="d-book-bar" style="width:50%;background:var(--muted)"></div></div>
+          <div class="gap-vis-pct" id="d-book-pct" style="color:var(--muted)">—</div>
+        </div>
+        <div class="gap-divider"></div>
+        <div class="gap-result-row">
+          <div class="gap-result-num ok" id="d-gap-big">—</div>
+          <div class="gap-result-lbl"   id="d-gap-lbl">gap</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Math breakdown -->
+    <div class="math-card">
+      <div class="math-card-hdr">How the numbers work</div>
+      <div class="math-rows">
+        <div class="math-row">
+          <div>
+            <div class="math-label">MLB win probability</div>
+            <div class="math-hint">Official MLB model — updates every pitch</div>
+          </div>
+          <div class="math-value" id="d-mlb-wp">—</div>
+        </div>
+        <div class="math-row">
+          <div>
+            <div class="math-label">Book's moneyline odds</div>
+            <div class="math-hint">What Hard Rock is showing right now</div>
+          </div>
+          <div class="math-value" id="d-book-odds">—</div>
+        </div>
+        <div class="math-row">
+          <div>
+            <div class="math-label">Book's implied probability</div>
+            <div class="math-hint">Odds converted to a win % — what the book thinks</div>
+          </div>
+          <div class="math-value" id="d-book-implied">—</div>
+        </div>
+        <div class="math-row">
+          <div>
+            <div class="math-label">Edge (the gap)</div>
+            <div class="math-hint">MLB% minus Book% — positive means you have an edge</div>
+          </div>
+          <div class="math-value muted" id="d-edge">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profit -->
+    <div class="math-card">
+      <div class="math-card-hdr">If you bet now</div>
+      <div class="profit-grid">
+        <div class="profit-cell">
+          <div class="profit-lbl">Your stake</div>
+          <div class="profit-val" id="d-stake-disp">$5.00</div>
+        </div>
+        <div class="profit-cell">
+          <div class="profit-lbl">Gross if win</div>
+          <div class="profit-val" id="d-gross">—</div>
+        </div>
+        <div class="profit-cell">
+          <div class="profit-lbl">Predicted net</div>
+          <div class="profit-val green" id="d-net">—</div>
+        </div>
+        <div class="profit-cell">
+          <div class="profit-lbl">Edge value</div>
+          <div class="profit-val" id="d-edge-val">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inputs -->
+    <div class="input-card">
+      <div class="input-row">
+        <div>
+          <div class="input-lbl">Hard Rock ML odds</div>
+          <div class="input-hint" id="d-implied-line">Implied: —</div>
+        </div>
+        <input class="field-input" id="d-odds-input" type="text" placeholder="-110" oninput="onDetailChange()">
+      </div>
+    </div>
+
+    <div class="input-card">
+      <div class="input-row">
+        <div>
+          <div class="input-lbl">Your stake</div>
+          <div class="input-hint">Updates profit calc above</div>
+        </div>
+        <input class="field-input" id="d-stake-input" type="text" value="5.00" oninput="onDetailChange()">
+      </div>
+    </div>
+
+  </div>
+  <div class="bottom-pad"></div>
 </div>
-<div class="log-box" id="log"><div class="log-empty">— starting —</div></div>
 
 <script>
 const TARGET_BOOK = "Hard Rock Bet (FL)";
-let games = [];
-let pollTimer = null;
-let progTimer = null;
-let prog = 0;
-let logRows = [];
+const POLL_MS = 2000;
+let games = [], activeIdx = null, betTimer = null;
+let pollTimer = null, progTimer = null, prog = 0;
 
 function odds_to_prob(odds) {
-  if (odds < 0) return (Math.abs(odds) / (Math.abs(odds) + 100)) * 100;
-  return (100 / (odds + 100)) * 100;
+  const n = parseFloat(odds);
+  if (isNaN(n) || n === 0) return null;
+  return n < 0 ? (Math.abs(n)/(Math.abs(n)+100))*100 : (100/(n+100))*100;
 }
 
-function calculate_trade(stake, buy_odds, current_truth_prob) {
-  const buy_prob = odds_to_prob(buy_odds);
-  const potential_profit = buy_odds < 0
-    ? stake / (Math.abs(buy_odds) / 100)
-    : stake * (buy_odds / 100);
-  const gross_winnings = stake + potential_profit;
-  const edge_value = (current_truth_prob - buy_prob) / 100;
-  return { gross: gross_winnings, net: gross_winnings * edge_value };
+function calculate_trade(stake, buy_odds, truth) {
+  const bp = odds_to_prob(buy_odds);
+  if (!bp) return null;
+  const profit = buy_odds < 0 ? stake/(Math.abs(buy_odds)/100) : stake*(buy_odds/100);
+  const gross = stake + profit;
+  return { gross, net: gross*((truth-bp)/100), edge_pct: truth-bp };
 }
 
-function ts() {
-  return new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+function fmt12(iso) {
+  return new Date(iso).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
 }
 
-// ── auto-start on load ──────────────────────────────────
 (async function init() {
   await loadSlate();
-  startEngine();
+  startPoll();
 })();
 
 async function loadSlate() {
@@ -186,218 +425,241 @@ async function loadSlate() {
     const raw = d?.dates?.[0]?.games || [];
     games = raw.map(g => ({
       pk:        g.gamePk,
-      name:      `${g.teams.away.team.name.split(' ').pop()} @ ${g.teams.home.team.name.split(' ').pop()}`,
-      fullName:  `${g.teams.away.team.name} vs ${g.teams.home.team.name}`,
+      away:      g.teams.away.team.name,
+      home:      g.teams.home.team.name,
+      awayAbr:   g.teams.away.team.name.split(' ').pop(),
+      homeAbr:   g.teams.home.team.name.split(' ').pop(),
+      time:      fmt12(g.gameDate),
       status:    g.status.detailedState,
-      truth:     null,
-      marketOdds:-110,
-      betTimer:  null,
+      isLive:    g.status.detailedState === 'In Progress',
+      isFinal:   ['Final','Game Over','Completed'].includes(g.status.detailedState),
+      awayScore: g.teams.away.score ?? null,
+      homeScore: g.teams.home.score ?? null,
+      truth: null, odds: -110,
     }));
-    document.getElementById('slate-sub').textContent = `${games.length} games · April 28, 2026`;
-    addLog(ts(), `Slate loaded: ${games.length} games`, '');
+    document.getElementById('game-count').textContent = games.length;
+    renderList();
   } catch(e) {
-    // Google's hardcoded fallback
     games = [
-      { pk:'287579', name:'NYY @ TEX', fullName:'New York Yankees vs Texas Rangers', truth:null, marketOdds:-125, betTimer:null },
-      { pk:'',       name:'MIA @ LAD', fullName:'Miami Marlins vs Los Angeles Dodgers', truth:null, marketOdds:210,  betTimer:null },
-      { pk:'',       name:'TB @ CLE',  fullName:'Tampa Bay Rays vs Cleveland Guardians', truth:null, marketOdds:-110, betTimer:null },
+      {pk:'',awayAbr:'TB', homeAbr:'CLE',away:'Tampa Bay Rays',   home:'Cleveland Guardians',   time:'6:10 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:-115},
+      {pk:'',awayAbr:'HOU',homeAbr:'BAL',away:'Houston Astros',   home:'Baltimore Orioles',     time:'6:35 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:-130},
+      {pk:'',awayAbr:'COL',homeAbr:'CIN',away:'Colorado Rockies', home:'Cincinnati Reds',       time:'6:40 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:+145},
+      {pk:'',awayAbr:'STL',homeAbr:'PIT',away:'St. Louis Cardinals',home:'Pittsburgh Pirates',  time:'6:40 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:-130},
+      {pk:'',awayAbr:'SF', homeAbr:'PHI',away:'San Francisco Giants',home:'Philadelphia Phillies',time:'6:40 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:+110},
+      {pk:'',awayAbr:'BOS',homeAbr:'TOR',away:'Boston Red Sox',   home:'Toronto Blue Jays',     time:'7:07 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:-120},
+      {pk:'',awayAbr:'WSH',homeAbr:'NYM',away:'Washington Nationals',home:'New York Mets',      time:'7:10 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:+175},
+      {pk:'',awayAbr:'DET',homeAbr:'ATL',away:'Detroit Tigers',   home:'Atlanta Braves',        time:'7:15 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:-160},
+      {pk:'',awayAbr:'SEA',homeAbr:'MIN',away:'Seattle Mariners', home:'Minnesota Twins',       time:'7:40 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:-105},
+      {pk:'',awayAbr:'LAA',homeAbr:'CWS',away:'Los Angeles Angels',home:'Chicago White Sox',   time:'7:40 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:-200},
+      {pk:'',awayAbr:'ARI',homeAbr:'MIL',away:'Arizona Diamondbacks',home:'Milwaukee Brewers', time:'7:40 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:+115},
+      {pk:'287579',awayAbr:'NYY',homeAbr:'TEX',away:'New York Yankees',home:'Texas Rangers',   time:'8:05 PM',status:'Upcoming',isLive:false,isFinal:false,truth:null,odds:-125},
     ];
-    document.getElementById('slate-sub').textContent = 'MLB API unavailable — fallback slate';
-    addLog(ts(), 'MLB API unreachable — using fallback slate', 'watch');
-  }
-  renderSlate();
-}
-
-function renderSlate() {
-  document.getElementById('slate').innerHTML = games.map((g,i) => `
-    <div class="game-card" id="card-${i}">
-      <div class="card-top">
-        <div>
-          <div class="card-name">${g.name}</div>
-          <div class="card-meta">${g.fullName}${g.pk ? ' · ID:'+g.pk : ''}</div>
-        </div>
-        <div class="card-badge badge-idle" id="badge-${i}">● WAITING</div>
-      </div>
-      <div class="card-body">
-        <div class="nums">
-          <div class="num-box"><div class="num-val dim" id="truth-${i}">—</div><div class="num-lbl">MLB WP %</div></div>
-          <div class="num-box"><div class="num-val dim" id="mkt-${i}">—</div><div class="num-lbl">HRB implied %</div></div>
-          <div class="num-box"><div class="num-val dim" id="gap-${i}">—</div><div class="num-lbl">Gap</div></div>
-          <div class="num-box"><div class="num-val dim" id="net-${i}">—</div><div class="num-lbl">Pred. net $</div></div>
-        </div>
-        <div class="gap-track"><div class="gap-fill" id="gapbar-${i}" style="width:0%;background:#333;"></div></div>
-        <div class="action idle" id="action-${i}"></div>
-        <div class="cdown-wrap" id="cdown-wrap-${i}" style="display:none">
-          <div class="cdown-num" id="cdown-${i}">15</div>
-          <div class="cdown-lbl">SECONDS — PLACE BET NOW</div>
-        </div>
-        <div class="odds-row">
-          <label>Hard Rock ML:</label>
-          <input type="text" id="odds-${i}" value="${g.marketOdds}" placeholder="-110"
-            oninput="updateOdds(${i},this.value)">
-          <span class="implied" id="implied-${i}">${odds_to_prob(g.marketOdds).toFixed(1)}% implied</span>
-        </div>
-      </div>
-    </div>`).join('');
-}
-
-function updateOdds(i, val) {
-  const n = parseFloat(val);
-  if (!isNaN(n) && n !== 0) {
-    games[i].marketOdds = n;
-    document.getElementById(`implied-${i}`).textContent = odds_to_prob(n).toFixed(1) + '% implied';
+    document.getElementById('game-count').textContent = games.length;
+    renderList();
   }
 }
 
-function startEngine() {
-  const ms = (parseFloat(document.getElementById('poll-interval').value) || 2) * 1000;
-  document.getElementById('dot').classList.add('on');
-  document.getElementById('dot-lbl').textContent = `live · ${ms/1000}s poll`;
-  addLog(ts(), `Engine running | Stake:$${document.getElementById('stake').value} | Threshold:${document.getElementById('threshold').value}% | ${TARGET_BOOK}`, '');
+function renderList() {
+  const el = document.getElementById('game-rows');
+  const thresh = parseFloat(document.getElementById('thresh').value) || 8;
+  if (!games.length) { el.innerHTML = '<div style="padding:24px;text-align:center;font-size:13px;color:var(--muted);">No games today.</div>'; return; }
+  el.innerHTML = games.map((g,i) => {
+    const mp  = odds_to_prob(g.odds);
+    const gap = (g.truth !== null && mp !== null) ? g.truth - mp : null;
+    const gapStr = gap !== null ? (gap>=0?'+':'')+gap.toFixed(1)+'%' : '—';
+    const gapCls = gap===null ? 'gap-ok' : gap>=thresh ? 'gap-fire' : gap>=thresh*0.6 ? 'gap-watch' : (gap<1&&g.truth>80) ? 'gap-sell' : 'gap-ok';
+    const rowCls = gap!==null&&gap>=thresh ? 'signal-buy' : (gap!==null&&gap<1&&g.truth>80) ? 'signal-sell' : gap!==null&&gap>=thresh*0.6 ? 'signal-watch' : '';
+    const sig = gap!==null&&gap>=thresh ? '🚨 BUY SIGNAL' : (gap!==null&&gap<1&&g.truth>80) ? '✅ SELL' : gap!==null&&gap>=thresh*0.6 ? '👀 WATCH' : '';
+    const stCls = g.isLive ? 'status-live' : g.isFinal ? 'status-final' : 'status-pre';
+    const stTxt = g.isLive ? `LIVE ${g.awayScore??0}–${g.homeScore??0}` : g.isFinal ? `FINAL ${g.awayScore}–${g.homeScore}` : 'UPCOMING';
+    return `<div class="game-row ${rowCls}" onclick="openDetail(${i})">
+      <div>
+        <div class="row-matchup">${g.awayAbr} @ ${g.homeAbr}</div>
+        <div class="row-meta">
+          <span class="row-time">${g.time}</span>
+          <span class="row-status ${stCls}">${stTxt}</span>
+        </div>
+      </div>
+      <div class="row-right">
+        <div class="row-gap ${gapCls}">${gapStr}</div>
+        ${sig ? `<div class="row-signal">${sig}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
 
+function startPoll() {
   doPoll();
-  pollTimer = setInterval(doPoll, ms);
+  pollTimer = setInterval(doPoll, POLL_MS);
   progTimer = setInterval(() => {
-    prog = Math.min(100, prog + (100/(ms/50)));
+    prog = Math.min(100, prog + (100/(POLL_MS/50)));
     document.getElementById('poll-fill').style.width = prog+'%';
-    document.getElementById('poll-lbl').textContent =
-      `next poll ${((ms - prog*ms/100)/1000).toFixed(1)}s`;
+    document.getElementById('poll-lbl').textContent = ((POLL_MS-prog*POLL_MS/100)/1000).toFixed(1)+'s';
   }, 50);
 }
 
 async function doPoll() {
   prog = 0;
-  const stake     = parseFloat(document.getElementById('stake').value)     || 5;
-  const threshold = parseFloat(document.getElementById('threshold').value) || 8;
-
-  for (let i = 0; i < games.length; i++) {
-    const g = games[i];
-    let truth = null;
-
-    if (g.pk) {
-      try {
-        const r = await fetch(`https://statsapi.mlb.com/api/v1.1/game/${g.pk}/feed/live`);
-        const d = await r.json();
-        let wp = d?.liveData?.plays?.currentPlay?.about?.homeWinProbability ?? null;
-        if (wp === null) {
-          const m = JSON.stringify(d).match(/"homeWinProbability"\s*:\s*([\d.]+)/);
-          if (m) wp = parseFloat(m[1]);
-        }
-        if (wp !== null) truth = wp > 1 ? wp : wp * 100;
-      } catch(e) {}
-    }
-
-    if (truth === null && g.truth !== null) truth = g.truth;
-    if (truth !== null) games[i].truth = truth;
-    updateCard(i, truth, g.marketOdds, stake, threshold);
+  for (let i=0; i<games.length; i++) {
+    if (!games[i].pk) continue;
+    try {
+      const r = await fetch(`https://statsapi.mlb.com/api/v1.1/game/${games[i].pk}/feed/live`);
+      const d = await r.json();
+      let wp = d?.liveData?.plays?.currentPlay?.about?.homeWinProbability ?? null;
+      if (wp===null) { const m=JSON.stringify(d).match(/"homeWinProbability"\s*:\s*([\d.]+)/); if(m) wp=parseFloat(m[1]); }
+      if (wp!==null) games[i].truth = wp>1?wp:wp*100;
+    } catch(e) {}
   }
+  renderList();
+  if (activeIdx!==null) refreshDetail();
 }
 
-function updateCard(i, truth_prob, market_odds, stake, gap_threshold) {
+function openDetail(i) {
+  activeIdx = i;
+  document.getElementById('list-view').style.display = 'none';
+  document.getElementById('detail-view').classList.add('active');
   const g = games[i];
-  const market_prob = odds_to_prob(market_odds);
+  document.getElementById('d-matchup').textContent = `${g.awayAbr} @ ${g.homeAbr}`;
+  document.getElementById('d-meta').textContent = `${g.away} vs ${g.home} · ${g.time}`;
+  document.getElementById('d-odds-input').value = g.odds;
+  refreshDetail();
+}
 
-  if (truth_prob === null) {
-    document.getElementById(`mkt-${i}`).textContent = market_prob.toFixed(1);
+function goBack() {
+  activeIdx = null; clearBetTimer();
+  document.getElementById('detail-view').classList.remove('active');
+  document.getElementById('list-view').style.display = 'block';
+}
+
+function onDetailChange() {
+  if (activeIdx===null) return;
+  const n = parseFloat(document.getElementById('d-odds-input').value);
+  if (!isNaN(n)&&n!==0) games[activeIdx].odds = n;
+  refreshDetail();
+}
+
+function refreshDetail() {
+  if (activeIdx===null) return;
+  const g      = games[activeIdx];
+  const thresh = parseFloat(document.getElementById('thresh').value)||8;
+  const stake  = parseFloat(document.getElementById('d-stake-input').value)||5;
+  const odds   = parseFloat(document.getElementById('d-odds-input').value)||g.odds;
+  const mp     = odds_to_prob(odds);
+  const truth  = g.truth;
+
+  document.getElementById('d-implied-line').textContent = mp ? `Implied: ${mp.toFixed(1)}% win probability` : 'Implied: —';
+  document.getElementById('d-stake-disp').textContent   = '$'+stake.toFixed(2);
+
+  if (!truth || !mp) {
+    setIdle('Win probability not in feed yet — game may be pregame.');
+    ['d-mlb-wp','d-book-odds','d-book-implied','d-edge','d-gross','d-net','d-edge-val'].forEach(id=>document.getElementById(id).textContent='—');
+    document.getElementById('d-book-odds').textContent = (odds>0?'+':'')+odds;
+    document.getElementById('d-book-implied').textContent = mp?mp.toFixed(1)+'%':'—';
     return;
   }
 
-  const gap = truth_prob - market_prob;
-  const { gross, net } = calculate_trade(stake, market_odds, truth_prob);
+  const gap   = truth - mp;
+  const trade = calculate_trade(stake, odds, truth);
 
-  document.getElementById(`truth-${i}`).textContent = truth_prob.toFixed(1);
-  document.getElementById(`mkt-${i}`).textContent   = market_prob.toFixed(1);
+  // bars
+  document.getElementById('d-mlb-bar').style.width  = Math.min(100,truth).toFixed(0)+'%';
+  document.getElementById('d-book-bar').style.width = Math.min(100,mp).toFixed(0)+'%';
+  document.getElementById('d-mlb-pct').textContent  = truth.toFixed(1)+'%';
+  document.getElementById('d-book-pct').textContent = mp.toFixed(1)+'%';
 
-  const gapEl = document.getElementById(`gap-${i}`);
-  gapEl.textContent = (gap >= 0 ? '+' : '') + gap.toFixed(1);
-  gapEl.className   = 'num-val ' + (gap >= gap_threshold ? 'green' : gap >= 4 ? 'orange' : gap < -4 ? 'red' : 'dim');
+  const gapEl = document.getElementById('d-gap-big');
+  gapEl.textContent = (gap>=0?'+':'')+gap.toFixed(1)+'%';
+  gapEl.className   = 'gap-result-num '+(gap>=thresh?'fire':gap>=thresh*0.6?'watch':'ok');
+  document.getElementById('d-gap-lbl').textContent = gap>=thresh ? '🔥 above threshold — bet!' : `need +${(thresh-gap).toFixed(1)}% more to fire`;
 
-  const netEl = document.getElementById(`net-${i}`);
-  netEl.textContent = (net >= 0 ? '+$' : '-$') + Math.abs(net).toFixed(2);
-  netEl.className   = 'num-val ' + (net > 0 ? 'green' : net < -0.5 ? 'red' : 'dim');
+  document.getElementById('d-mlb-wp').textContent       = truth.toFixed(1)+'%';
+  document.getElementById('d-book-odds').textContent    = (odds>0?'+':'')+odds;
+  document.getElementById('d-book-implied').textContent = mp.toFixed(1)+'%';
+  const edgeEl = document.getElementById('d-edge');
+  edgeEl.textContent = (gap>=0?'+':'')+gap.toFixed(1)+'%';
+  edgeEl.className   = 'math-value '+(gap>=thresh?'green':gap>=thresh*0.6?'amber':'muted');
 
-  const barPct   = Math.min(100, Math.max(0, (gap / gap_threshold) * 100));
-  const barColor = gap >= gap_threshold ? '#00e676' : gap >= 4 ? '#ff9100' : '#333';
-  document.getElementById(`gapbar-${i}`).style.width      = barPct + '%';
-  document.getElementById(`gapbar-${i}`).style.background = barColor;
-
-  const card   = document.getElementById(`card-${i}`);
-  const badge  = document.getElementById(`badge-${i}`);
-  const action = document.getElementById(`action-${i}`);
-
-  if (gap >= gap_threshold) {
-    card.className   = 'game-card buy';
-    badge.className  = 'card-badge badge-buy';
-    badge.textContent = '🚨 BUY SIGNAL';
-    action.className = 'action buy';
-    action.innerHTML =
-      `🚨 BUY SIGNAL: <strong>${g.name} Moneyline</strong><br>
-       REASON: <strong>+${gap.toFixed(1)}% Advantage Detected!</strong><br>
-       ACTION: Place <strong>$${stake}</strong> at <strong>${market_odds}</strong> on ${TARGET_BOOK}<br>
-       💰 Gross if win: <strong>$${gross.toFixed(2)}</strong> · Predicted net: <strong>$${net.toFixed(2)}</strong>`;
-    startBetTimer(i);
-    addLog(ts(), `🚨 BUY: ${g.name} | +${gap.toFixed(1)}% | $${stake} @ ${market_odds} | Net:$${net.toFixed(2)}`, 'buy');
-
-  } else if (gap < 1.0 && truth_prob > 80.0) {
-    card.className   = 'game-card sell';
-    badge.className  = 'card-badge badge-sell';
-    badge.textContent = '✅ SELL SIGNAL';
-    action.className = 'action sell';
-    action.innerHTML =
-      `✅ SELL SIGNAL: Market has corrected. Cash Out for profit.<br>
-       👉 CLOSE WITH: <strong>"Cash Out" button on Hard Rock app</strong><br>
-       💸 Target profit: <strong>~$${net.toFixed(2)}</strong>`;
-    clearBetTimer(i);
-    addLog(ts(), `✅ SELL: ${g.name} | Gap:${gap.toFixed(1)}% | WP:${truth_prob.toFixed(1)}%`, 'sell');
-
-  } else if (gap >= 4.0) {
-    card.className   = 'game-card watch';
-    badge.className  = 'card-badge badge-watch';
-    badge.textContent = '👀 WATCH';
-    action.className = 'action watch';
-    action.innerHTML =
-      `Gap <strong>+${gap.toFixed(1)}%</strong> — need <strong>${(gap_threshold-gap).toFixed(1)}% more</strong> to fire.<br>
-       Have Hard Rock open on this game.`;
-    clearBetTimer(i);
-
-  } else {
-    card.className   = 'game-card';
-    badge.className  = 'card-badge badge-idle';
-    badge.textContent = '● MONITORING';
-    action.className = 'action idle';
-    clearBetTimer(i);
+  if (trade) {
+    document.getElementById('d-gross').textContent   = '$'+trade.gross.toFixed(2);
+    document.getElementById('d-net').textContent     = (trade.net>=0?'+$':'-$')+Math.abs(trade.net).toFixed(2);
+    document.getElementById('d-net').className       = 'profit-val '+(trade.net>0?'green':'red');
+    document.getElementById('d-edge-val').textContent= (trade.edge_pct>=0?'+':'')+trade.edge_pct.toFixed(1)+'%';
   }
+
+  if (gap >= thresh)                setDetailBuy(g,gap,truth,mp,odds,stake,trade);
+  else if (gap<1.0 && truth>80.0)   setDetailSell(g,gap,truth,trade);
+  else if (gap >= thresh*0.6)       setDetailWatch(g,gap,thresh,truth,mp);
+  else                              setIdle(`No edge. Gap is ${gap.toFixed(1)}% — need ${(thresh-gap).toFixed(1)}% more to fire.`);
 }
 
-function startBetTimer(i) {
-  if (games[i].betTimer) return;
-  let secs = 15;
-  document.getElementById(`cdown-wrap-${i}`).style.display = 'block';
-  document.getElementById(`cdown-${i}`).textContent = secs;
-  games[i].betTimer = setInterval(() => {
-    secs--;
-    document.getElementById(`cdown-${i}`).textContent = secs;
-    if (secs <= 0) { clearBetTimer(i); addLog(ts(), `Window expired: ${games[i].name}`, 'watch'); }
+function setDetailBuy(g,gap,truth,mp,odds,stake,trade) {
+  set('d-banner','signal-banner buy');
+  set('d-banner-lbl','banner-label buy','🚨 BUY SIGNAL');
+  set('d-banner-action','banner-action buy',`Bet ${g.homeAbr} Moneyline`);
+  document.getElementById('d-banner-why').innerHTML =
+    `MLB says <strong>${g.homeAbr} wins ${truth.toFixed(1)}%</strong> from here.<br>
+     Hard Rock only implies <strong>${mp.toFixed(1)}%</strong> — <span class="hl-red">+${gap.toFixed(1)}% edge in your favor.</span><br><br>
+     → Open Hard Rock · Tap <strong>${g.homeAbr} ML (${(odds>0?'+':'')+odds})</strong> · Place <strong>$${stake.toFixed(2)}</strong>`;
+  startBetTimer();
+}
+
+function setDetailSell(g,gap,truth,trade) {
+  clearBetTimer();
+  set('d-banner','signal-banner sell');
+  set('d-banner-lbl','banner-label sell','✅ SELL SIGNAL');
+  set('d-banner-action','banner-action sell','Cash Out for profit');
+  document.getElementById('d-banner-why').innerHTML =
+    `Gap closed (${gap.toFixed(1)}%) and MLB WP is <span class="hl-grn">${truth.toFixed(1)}%</span> — strong position.<br><br>
+     → Open Hard Rock · Find your bet · Tap <strong>"Cash Out"</strong>`;
+}
+
+function setDetailWatch(g,gap,thresh,truth,mp) {
+  clearBetTimer();
+  set('d-banner','signal-banner watch');
+  set('d-banner-lbl','banner-label watch','👀 WATCH');
+  set('d-banner-action','banner-action watch',`Gap is +${gap.toFixed(1)}% — building`);
+  document.getElementById('d-banner-why').innerHTML =
+    `MLB: <strong>${truth.toFixed(1)}%</strong> · Hard Rock implies: <strong>${mp.toFixed(1)}%</strong><br>
+     Need <span class="hl-amb">${(thresh-gap).toFixed(1)}% more</span> to trigger BUY.<br>
+     Have Hard Rock open. Next poll in 2s.`;
+}
+
+function setIdle(msg) {
+  clearBetTimer();
+  set('d-banner','signal-banner idle');
+  set('d-banner-lbl','banner-label idle','MONITORING');
+  set('d-banner-action','banner-action idle','No edge detected');
+  document.getElementById('d-banner-why').textContent = msg;
+}
+
+function set(id, cls, txt) {
+  const el = document.getElementById(id);
+  if (cls) el.className = cls;
+  if (txt !== undefined) el.textContent = txt;
+}
+
+function startBetTimer() {
+  if (betTimer) return;
+  let s = 15;
+  document.getElementById('d-cdown-row').style.display = 'flex';
+  document.getElementById('d-cdown').textContent = s;
+  betTimer = setInterval(() => {
+    s--;
+    document.getElementById('d-cdown').textContent = s;
+    if (s<=0) clearBetTimer();
   }, 1000);
 }
 
-function clearBetTimer(i) {
-  if (games[i]?.betTimer) { clearInterval(games[i].betTimer); games[i].betTimer = null; }
-  const w = document.getElementById(`cdown-wrap-${i}`);
-  if (w) w.style.display = 'none';
+function clearBetTimer() {
+  if (betTimer) { clearInterval(betTimer); betTimer=null; }
+  const r = document.getElementById('d-cdown-row');
+  if (r) r.style.display = 'none';
 }
 
-function addLog(t, msg, cls) {
-  logRows.unshift({t,msg,cls});
-  if (logRows.length > 80) logRows.pop();
-  document.getElementById('log').innerHTML = logRows.map(r =>
-    `<div class="log-row"><span class="log-t">${r.t}</span><span class="log-m ${r.cls}">${r.msg}</span></div>`
-  ).join('');
-}
-function clearLog() {
-  logRows = [];
-  document.getElementById('log').innerHTML = '<div class="log-empty">— cleared —</div>';
-}
+document.getElementById('thresh').addEventListener('input', () => {
+  renderList();
+  if (activeIdx!==null) refreshDetail();
+});
 </script>
 </body>
 </html>
