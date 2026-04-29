@@ -3,302 +3,312 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gap King Pro • Live Edge</title>
+<title>Gap King Pro</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
 
 :root {
-  --bg: #0b0f14;
-  --card: #121821;
-  --text: #e0e7ff;
-  --green: #00ff99;
-  --red: #ff4d4d;
-  --accent: #3b82f6;
+  --bg: #0a0f1c;
+  --card: #111827;
+  --border: #1f2937;
+  --text: #f1f5f9;
+  --muted: #94a3b8;
+  --green: #22c55e;
+  --red: #ef4444;
+  --blue: #3b82f6;
 }
 
+* { margin:0; padding:0; box-sizing:border-box; }
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   background: var(--bg);
   color: var(--text);
-  margin: 0;
-  padding: 0;
   min-height: 100vh;
-}
-header {
-  background: #1a2332;
   padding: 16px;
-  text-align: center;
-  border-bottom: 1px solid #334155;
 }
-h1 { margin: 0; font-size: 24px; }
 
-select, button {
-  padding: 10px 14px;
-  margin: 10px;
-  border-radius: 8px;
-  border: none;
-  background: #1e2937;
+header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+header h1 {
+  font-size: 28px;
+  font-weight: 700;
+}
+header p {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+select {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
   color: white;
   font-size: 16px;
+  margin-bottom: 20px;
 }
 
 .card {
   background: var(--card);
-  margin: 15px;
-  padding: 20px;
   border-radius: 16px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  padding: 20px;
+  border: 1px solid var(--border);
+  margin-bottom: 20px;
 }
 
-.team-name { 
-  font-size: 28px; 
-  font-weight: 700; 
-  margin-bottom: 8px; 
+.team-name {
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 4px;
 }
-.vs { 
-  color: #64748b; 
-  font-size: 15px; 
+.vs {
+  color: var(--muted);
+  font-size: 15px;
 }
 
-.row { 
-  display: flex; 
-  justify-content: space-between; 
-  margin: 18px 0; 
-  font-size: 18px; 
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin: 20px 0;
 }
-.label { 
-  color: #94a3b8; 
+.stat {
+  background: #1e2937;
+  padding: 12px;
+  border-radius: 10px;
+  text-align: center;
 }
-.value { 
-  font-family: 'JetBrains Mono', monospace; 
-  font-weight: 700; 
+.stat-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.stat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  margin-top: 4px;
 }
 
 .bar-container {
-  height: 14px;
+  height: 10px;
   background: #1e2937;
-  border-radius: 9999px;
+  border-radius: 999px;
   overflow: hidden;
-  margin: 15px 0;
+  margin: 16px 0;
 }
 .bar {
   height: 100%;
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
-  transition: width 0.8s ease;
+  background: linear-gradient(to right, var(--blue), #60a5fa);
+  transition: width 0.7s ease;
 }
 
 .signal {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 800;
-  padding: 20px;
-  border-radius: 12px;
-  margin: 20px 0;
+  padding: 24px 20px;
+  border-radius: 14px;
   text-align: center;
-  min-height: 80px;
+  margin: 20px 0;
+  min-height: 90px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
+  gap: 6px;
 }
-.enter { background: rgba(0, 255, 153, 0.15); color: var(--green); border: 2px solid var(--green); }
-.exit  { background: rgba(255, 77, 77, 0.15); color: var(--red); border: 2px solid var(--red); }
+.enter { background: rgba(34, 197, 94, 0.15); color: var(--green); border: 2px solid var(--green); }
 .hold  { background: rgba(234, 179, 8, 0.15); color: #eab308; border: 2px solid #eab308; }
+.exit  { background: rgba(239, 68, 68, 0.15); color: var(--red); border: 2px solid var(--red); }
 
-.status { font-size: 14px; color: #64748b; margin-top: 10px; }
+.footer-info {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 30px;
+}
 </style>
 </head>
 <body>
 
 <header>
   <h1>👑 Gap King Pro</h1>
-  <p>Live Edge Tracker vs Hard Rock</p>
+  <p>Live Edge vs Hard Rock • One Game Focus</p>
 </header>
 
-<div class="card">
-  <select id="gameSelect" onchange="loadGame()">
-    <option value="">Select a game...</option>
-  </select>
+<select id="gameSelect" onchange="loadSelectedGame()">
+  <option value="">Loading today's games...</option>
+</select>
 
-  <div id="gameInfo">
-    <div class="team-name" id="teamName">—</div>
-    <div class="vs" id="vs">—</div>
-  </div>
+<div class="card" id="mainCard" style="display:none;">
+  <div class="team-name" id="teamName">—</div>
+  <div class="vs" id="vsInfo">—</div>
 
-  <div class="row">
-    <div>
-      <div class="label">Gumbo Win % (True Prob)</div>
-      <div class="value" id="gumboProb">—</div>
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">Gumbo Win%</div>
+      <div class="stat-value" id="gumbo">—</div>
     </div>
-    <div style="text-align:right">
-      <div class="label">Hard Rock Implied %</div>
-      <div class="value" id="marketProb">—</div>
+    <div class="stat">
+      <div class="stat-label">Hard Rock Implied</div>
+      <div class="stat-value" id="implied">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Edge</div>
+      <div class="stat-value" id="edge">—</div>
     </div>
   </div>
 
   <div class="bar-container">
-    <div id="probBar" class="bar" style="width: 50%"></div>
+    <div id="probBar" class="bar" style="width:50%"></div>
   </div>
 
-  <div class="signal" id="signalBox">Select a game to begin monitoring</div>
+  <div class="signal" id="signal">
+    Select a game to start monitoring
+  </div>
 
-  <div class="row">
-    <div>
-      <div class="label">Edge</div>
-      <div class="value" id="edge" style="color:#00ff99">—</div>
-    </div>
-    <div style="text-align:right">
-      <div class="label">Hard Rock ML</div>
-      <div class="value" id="moneyline">—</div>
-    </div>
+  <div style="display:flex; justify-content:space-between; font-size:15px; margin-top:10px;">
+    <div>Hard Rock ML: <span id="ml" style="font-family:monospace; font-weight:700;">—</span></div>
   </div>
 </div>
 
+<div class="footer-info">
+  Powered by MLB Gumbo + The Odds API<br>
+  Refreshing every 15 seconds
+</div>
+
 <script>
-// ============== CONFIG ==============
+// ================== CONFIG ==================
 const ODDS_API_KEY = '75fbd1947a7dec109b7573b6951a65aa';
-const ENTER_THRESHOLD = 5.0;   // % edge → ENTER (buy)
-const EXIT_THRESHOLD = -3.0;   // % edge → EXIT (sell/take profit)
+const ENTER_THRESHOLD = 5.0;
+const EXIT_THRESHOLD = -3.0;
 
 let currentGamePk = null;
-let pollInterval = null;
+let pollTimer = null;
 
-// Convert American moneyline to implied probability %
-function moneylineToProb(odds) {
-  if (!odds) return 50;
-  if (odds < 0) {
-    return (Math.abs(odds) / (Math.abs(odds) + 100)) * 100;
-  } else {
-    return (100 / (odds + 100)) * 100;
-  }
+// Moneyline to probability
+function mlToProb(odds) {
+  if (!odds || isNaN(odds)) return 50;
+  return odds < 0 
+    ? (Math.abs(odds) / (Math.abs(odds) + 100)) * 100 
+    : (100 / (odds + 100)) * 100;
 }
 
-// Fetch today's MLB schedule
-async function fetchSchedule() {
+// Fetch schedule
+async function loadSchedule() {
   const select = document.getElementById('gameSelect');
-  select.innerHTML = '<option value="">Loading games...</option>';
-
   try {
     const today = new Date().toISOString().split('T')[0];
     const url = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${today}`;
-    
+
     const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
     const data = await res.json();
 
     const games = data.dates?.[0]?.games || [];
-    
     select.innerHTML = '<option value="">Select a game...</option>';
-    
-    games.forEach(game => {
-      const home = game.teams.home.team;
-      const away = game.teams.away.team;
-      const option = document.createElement('option');
-      option.value = game.gamePk;
-      option.textContent = `${away.abbreviation} @ ${home.abbreviation}`;
-      select.appendChild(option);
+
+    games.forEach(g => {
+      const away = g.teams.away.team.abbreviation;
+      const home = g.teams.home.team.abbreviation;
+      const opt = document.createElement('option');
+      opt.value = g.gamePk;
+      opt.textContent = `${away} @ ${home}`;
+      select.appendChild(opt);
     });
   } catch (e) {
     select.innerHTML = '<option value="">Failed to load games</option>';
   }
 }
 
-// Load selected game and start polling
-function loadGame() {
-  const gamePk = document.getElementById('gameSelect').value;
-  if (!gamePk) return;
+// Load selected game
+function loadSelectedGame() {
+  const pk = document.getElementById('gameSelect').value;
+  if (!pk) return;
 
-  currentGamePk = parseInt(gamePk);
-  if (pollInterval) clearInterval(pollInterval);
-  
-  pollData();                    // immediate first poll
-  pollInterval = setInterval(pollData, 15000); // poll every 15 seconds
+  currentGamePk = pk;
+  document.getElementById('mainCard').style.display = 'block';
+
+  if (pollTimer) clearInterval(pollTimer);
+  pollData();
+  pollTimer = setInterval(pollData, 15000);
 }
 
-// Main data polling function
+// Main polling
 async function pollData() {
   if (!currentGamePk) return;
 
   try {
-    // 1. Get live MLB Gumbo data (Win Probability)
-    const gumboUrl = `https://statsapi.mlb.com/api/v1.1/game/${currentGamePk}/feed/live`;
-    const gumboRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(gumboUrl)}`);
-    const gumboData = await gumboRes.json();
+    // 1. Gumbo Live Data
+    const liveUrl = `https://statsapi.mlb.com/api/v1.1/game/${currentGamePk}/feed/live`;
+    const liveRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(liveUrl)}`);
+    const liveData = await liveRes.json();
 
     let gumboProb = 50;
-    const currentPlay = gumboData?.liveData?.plays?.currentPlay?.about;
-    if (currentPlay?.homeWinProbability) {
-      gumboProb = currentPlay.homeWinProbability;
-    }
+    const wpPath = liveData?.liveData?.plays?.currentPlay?.about?.homeWinProbability;
+    if (wpPath) gumboProb = wpPath;
 
-    // 2. Get odds from The Odds API
+    // 2. Odds API
     const oddsUrl = `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=h2h&oddsFormat=american`;
     const oddsRes = await fetch(oddsUrl);
-    const oddsData = await oddsRes.json();
+    const oddsList = await oddsRes.json();
 
-    let hardRockOdds = null;
-    let homeTeamName = "Home Team";
+    let hardRockML = null;
+    let homeTeam = "Home Team";
 
-    if (Array.isArray(oddsData)) {
-      const gameOdds = oddsData.find(g => g.id == currentGamePk || g.home_team || g.away_team);
+    if (Array.isArray(oddsList)) {
+      const gameMatch = oddsList.find(g => String(g.id) === String(currentGamePk));
+      if (gameMatch) {
+        homeTeam = gameMatch.home_team || homeTeam;
 
-      if (gameOdds) {
-        homeTeamName = gameOdds.home_team || "Home Team";
-
-        // Look specifically for Hard Rock
-        const hardRockBook = gameOdds.bookmakers?.find(b => 
-          b.title?.toLowerCase().includes("hard rock") || 
-          b.key?.toLowerCase().includes("hardrock")
+        const hardRock = gameMatch.bookmakers?.find(b => 
+          b.title?.toLowerCase().includes("hard rock")
         );
 
-        if (hardRockBook?.markets?.[0]?.outcomes) {
-          const homeOutcome = hardRockBook.markets[0].outcomes.find(o => 
-            o.name === gameOdds.home_team
-          );
-          if (homeOutcome?.price) {
-            hardRockOdds = homeOutcome.price;
-          }
+        if (hardRock) {
+          const outcome = hardRock.markets[0]?.outcomes?.find(o => o.name === gameMatch.home_team);
+          if (outcome) hardRockML = outcome.price;
         }
       }
     }
 
-    const marketProb = hardRockOdds ? moneylineToProb(hardRockOdds) : 50;
-    const edge = gumboProb - marketProb;
+    const impliedProb = hardRockML ? mlToProb(hardRockML) : 50;
+    const edge = gumboProb - impliedProb;
 
     // Update UI
-    document.getElementById('teamName').textContent = homeTeamName;
-    document.getElementById('vs').textContent = "vs Away Team (Live)";
-    document.getElementById('gumboProb').textContent = gumboProb.toFixed(1) + "%";
-    document.getElementById('marketProb').textContent = marketProb.toFixed(1) + "%";
-    document.getElementById('edge').textContent = edge.toFixed(1) + "%";
-    document.getElementById('moneyline').textContent = hardRockOdds ? hardRockOdds : "—";
+    document.getElementById('teamName').textContent = homeTeam;
+    document.getElementById('vsInfo').textContent = 'vs Away Team • Live Monitoring';
+    document.getElementById('gumbo').textContent = gumboProb.toFixed(1) + '%';
+    document.getElementById('implied').textContent = impliedProb.toFixed(1) + '%';
+    document.getElementById('edge').textContent = edge.toFixed(1) + '%';
+    document.getElementById('ml').textContent = hardRockML || '—';
 
-    // Progress bar
-    const bar = document.getElementById('probBar');
-    bar.style.width = Math.min(100, Math.max(0, gumboProb)) + "%";
+    document.getElementById('probBar').style.width = `${Math.max(0, Math.min(100, gumboProb))}%`;
 
-    // Signal logic
-    const signalBox = document.getElementById('signalBox');
-
+    // Signal
+    const signalEl = document.getElementById('signal');
     if (edge >= ENTER_THRESHOLD) {
-      signalBox.className = "signal enter";
-      signalBox.innerHTML = `🟢 ENTER<br><small>Hard Rock lagging by ${edge.toFixed(1)}%</small>`;
-    } 
-    else if (edge <= EXIT_THRESHOLD) {
-      signalBox.className = "signal exit";
-      signalBox.innerHTML = `🔴 EXIT / TAKE PROFIT<br><small>Market caught up</small>`;
-    } 
-    else {
-      signalBox.className = "signal hold";
-      signalBox.innerHTML = `⚖️ HOLD<br><small>Edge: ${edge.toFixed(1)}% (No strong signal)</small>`;
+      signalEl.className = 'signal enter';
+      signalEl.innerHTML = `🟢 ENTER<br><small>Hard Rock is behind by ${edge.toFixed(1)}%</small>`;
+    } else if (edge <= EXIT_THRESHOLD) {
+      signalEl.className = 'signal exit';
+      signalEl.innerHTML = `🔴 EXIT / TAKE PROFIT<br><small>Market has caught up</small>`;
+    } else {
+      signalEl.className = 'signal hold';
+      signalEl.innerHTML = `⚖️ HOLD<br><small>Edge: ${edge.toFixed(1)}% — Waiting</small>`;
     }
 
   } catch (err) {
     console.error(err);
-    document.getElementById('signalBox').innerHTML = `⚠️ Connection issue<br><small>Retrying in 15s...</small>`;
+    document.getElementById('signal').innerHTML = `⚠️ Error fetching data<br><small>Retrying...</small>`;
   }
 }
 
-// Start the app
-fetchSchedule();
+// Start everything
+loadSchedule();
 </script>
 </body>
 </html>
