@@ -5,335 +5,138 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GAP KING | LIVE COMMAND</title>
     <style>
-        :root {
-            --bg: #000;
-            --bg-alt: #111;
-            --row-border: #222;
-            --text-main: #fff;
-            --text-muted: #777;
-            --accent-live: #22c55e;
-            --accent-gap: #f97316;
-            --accent-gap-high: #ef4444;
-            --accent-win: #3b82f6;
-            --accent-odds: #fbbf24;
-        }
-
+        :root { --bg: #000; --bg-alt: #111; --row-border: #222; --text-main: #fff; --text-muted: #777; --accent-live: #22c55e; --accent-gap-high: #ef4444; --accent-win: #3b82f6; --accent-odds: #fbbf24; }
         * { box-sizing: border-box; }
-
-        body {
-            background: var(--bg);
-            color: var(--text-main);
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
-            margin: 0;
-            padding: 5px;
-            overflow: hidden;
-        }
-
-        #status-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 10px;
-            color: var(--text-muted);
-            padding: 4px 6px;
-            background: var(--bg-alt);
-            gap: 6px;
-            flex-wrap: wrap;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 11px;
-            table-layout: fixed;
-        }
-
-        th {
-            background: #181818;
-            color: #888;
-            text-align: left;
-            padding: 4px;
-            font-weight: 500;
-            border-bottom: 1px solid var(--row-border);
-        }
-
-        td {
-            padding: 4px;
-            border-bottom: 1px solid var(--row-border);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .live {
-            color: var(--accent-live);
-            font-weight: 700;
-        }
-
-        .gap-cell {
-            font-weight: 600;
-        }
-
-        .gap-normal {
-            color: var(--accent-gap);
-        }
-
-        .gap-high {
-            background: rgba(239, 68, 68, 0.18);
-            color: var(--accent-gap-high);
-            border-radius: 3px;
-        }
-
-        .win-pct {
-            color: var(--accent-win);
-            font-weight: 600;
-        }
-
-        .odd-val {
-            color: var(--accent-odds);
-        }
-
-        .momentum-up {
-            color: #22c55e;
-        }
-
-        .momentum-down {
-            color: #ef4444;
-        }
-
-        .momentum-flat {
-            color: #9ca3af;
-        }
-
-        .sparkline {
-            font-size: 9px;
-            letter-spacing: 1px;
-        }
-
-        @media (max-width: 768px) {
-            body { padding: 2px; }
-            table { font-size: 10px; }
-            th, td { padding: 3px; }
-            #status-bar { font-size: 9px; }
-            .hide-mobile { display: none; }
-        }
+        body { background: var(--bg); color: var(--text-main); font-family: system-ui, sans-serif; margin: 0; padding: 5px; overflow: hidden; }
+        #status-bar { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); padding: 4px 6px; background: var(--bg-alt); border-bottom: 1px solid var(--row-border); }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; }
+        th { background: #181818; color: #888; text-align: left; padding: 6px 4px; font-weight: 500; border-bottom: 1px solid var(--row-border); }
+        td { padding: 8px 4px; border-bottom: 1px solid var(--row-border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .live { color: var(--accent-live); font-weight: 700; }
+        .gap-high { background: rgba(239, 68, 68, 0.2); color: var(--accent-gap-high); font-weight: bold; }
+        .win-pct { color: var(--accent-win); font-weight: 600; }
+        .odd-val { color: var(--accent-odds); }
     </style>
 </head>
 <body>
 
 <div id="status-bar">
-    <div id="clock">BOOTING...</div>
-    <div>HARD ROCK FL MONITOR | ALARM: &gt;8%</div>
+    <div id="clock">SYSTEM READY</div>
+    <div>HARD ROCK FL | ALARM: >8%</div>
     <div id="api-status">API: IDLE</div>
 </div>
 
 <table id="main-table">
     <thead>
         <tr>
-            <th width="18%">CITY/INN</th>
+            <th width="20%">CITY/INN</th>
             <th width="10%">SCORE</th>
             <th width="12%">BOOK %</th>
             <th width="12%">MLB %</th>
-            <th width="10%">GAP</th>
+            <th width="12%">GAP %</th>
             <th width="12%">HR ODDS</th>
-            <th width="12%">MODEL ODDS</th>
-            <th width="14%" class="hide-mobile">MOMENTUM</th>
+            <th width="12%">MODEL</th>
         </tr>
     </thead>
-    <tbody id="grid-body">
-        <!-- Live Rows Injected Here -->
-    </tbody>
+    <tbody id="grid-body"></tbody>
 </table>
 
 <audio id="alarm-sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
 
 <script>
-const ODDS_KEY = 'YOUR_ODDS_API_KEY_HERE';
+const ODDS_KEY = '75fbd1947a7dec109b7573b6951a65aa'; 
 const CORS = "https://corsproxy.io/?url=";
 const THRESHOLD = 8.0;
-const POLL_MS = 60000;
 
 function amToProb(odds) {
     const n = parseFloat(odds);
     if (isNaN(n) || n === 0) return 0;
-    return n < 0
-        ? (Math.abs(n) / (Math.abs(n) + 100)) * 100
-        : (100 / (n + 100)) * 100;
+    return n < 0 ? (Math.abs(n) / (Math.abs(n) + 100)) * 100 : (100 / (n + 100)) * 100;
 }
 
 function probToAm(prob) {
-    if (prob <= 0) return "+∞";
-    if (prob >= 100) return "-∞";
+    if (prob >= 100) return "-9999";
+    if (prob <= 0) return "+9999";
     if (prob >= 50) return Math.round(-100 * (prob / (100 - prob)));
     return "+" + Math.round(100 * ((100 - prob) / prob));
 }
 
-function shortTeamLabel(name) {
-    const parts = name.split(' ');
-    return parts[parts.length - 1];
-}
-
-function inningLabel(game) {
-    const ls = game.linescore;
-    if (!ls || !ls.currentInningOrdinal) return 'PRE';
-    const arrow = ls.inningHalf === 'top' ? '▲' : '▼';
-    return arrow + ls.currentInningOrdinal;
-}
-
-function formatScore(game) {
-    const away = game.teams.away.score ?? 0;
-    const home = game.teams.home.score ?? 0;
-    return `${away}-${home}`;
-}
-
-function isLive(game) {
-    return game.status.abstractGameState === 'Live';
-}
-
-const gapHistoryByGame = {};
-
-function updateGapHistory(gamePk, gap) {
-    if (!gapHistoryByGame[gamePk]) gapHistoryByGame[gamePk] = [];
-    const arr = gapHistoryByGame[gamePk];
-    arr.push(gap);
-    if (arr.length > 12) arr.shift();
-}
-
-function getMomentum(gamePk) {
-    const arr = gapHistoryByGame[gamePk];
-    if (!arr || arr.length < 2) return { dir: 'flat', delta: 0, spark: '' };
-
-    const last = arr[arr.length - 1];
-    const prev = arr[arr.length - 2];
-    const delta = last - prev;
-
-    let dir = 'flat';
-    if (delta > 0.3) dir = 'up';
-    else if (delta < -0.3) dir = 'down';
-
-    const min = Math.min(...arr);
-    const max = Math.max(...arr);
-    const span = max - min || 1;
-    const chars = "▁▂▃▄▅▆▇█";
-    const spark = arr.map(v => {
-        const idx = Math.floor(((v - min) / span) * (chars.length - 1));
-        return chars[idx];
-    }).join('');
-
-    return { dir, delta, spark };
-}
-
 async function update() {
     const apiStatus = document.getElementById('api-status');
-    const clock = document.getElementById('clock');
     apiStatus.innerText = "API: PULLING...";
 
     try {
-        const [oddsRes, mlbRes] = await Promise.all([
-            fetch(`${CORS}https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?regions=us&apiKey=${ODDS_KEY}&bookmakers=hardrock`),
-            fetch(`${CORS}https://statsapi.mlb.com/api/v1/schedule?sportId=1&hydrate=linescore`)
-        ]);
+        const oddsUrl = `${CORS}${encodeURIComponent(`https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?regions=us&apiKey=${ODDS_KEY}&bookmakers=hardrock&oddsFormat=american`)}`;
+        const schedUrl = `${CORS}${encodeURIComponent('https://statsapi.mlb.com/api/v1/schedule?sportId=1&hydrate=linescore')}`;
 
+        const [oddsRes, mlbRes] = await Promise.all([fetch(oddsUrl), fetch(schedUrl)]);
         const oddsData = await oddsRes.json();
         const mlbData = await mlbRes.json();
         const games = mlbData.dates?.[0]?.games || [];
 
-        const oddsByHome = {};
-        for (const o of oddsData || []) {
-            if (!o.home_team) continue;
-            oddsByHome[o.home_team] = o;
-        }
-
-        const liveGamePks = games.map(g => g.gamePk);
-        const liveFetches = liveGamePks.map(pk =>
-            fetch(`${CORS}https://statsapi.mlb.com/api/v1.1/game/${pk}/feed/live`)
-                .then(r => r.json())
-                .catch(() => null)
-        );
-        const liveDataArr = await Promise.all(liveFetches);
-        const liveByPk = {};
-        liveGamePks.forEach((pk, i) => { liveByPk[pk] = liveDataArr[i]; });
-
-        let tableRows = [];
+        const tableRows = [];
         let alarmTriggered = false;
 
+        // Process each game sequentially to fetch live Gumbo probability
         for (const game of games) {
-            const gamePk = game.gamePk;
             const homeTeam = game.teams.home.team.name;
+            const liveUrl = `${CORS}${encodeURIComponent(`https://statsapi.mlb.com/api/v1.1/game/${game.gamePk}/feed/live`)}`;
+            
+            const liveRes = await fetch(liveUrl);
+            const liveData = await liveRes.json();
+            const homeWP = liveData?.liveData?.plays?.currentPlay?.about?.homeWinProbability;
 
-            const liveData = liveByPk[gamePk];
-            const homeWP = liveData?.liveData?.plays?.currentPlay?.about?.homeWinProbability ?? 50;
+            // NO MOCK DATA: Skip if live percentage isn't available
+            if (homeWP === undefined || homeWP === null) continue;
 
-            const oddsMatch = oddsByHome[homeTeam];
-            const hrMarket = oddsMatch?.bookmakers?.[0]?.markets?.[0]?.outcomes || [];
-            const hrHome = hrMarket.find(o => o.name === homeTeam);
+            const oddsMatch = oddsData.find(o => o.home_team === homeTeam);
+            const hrHome = oddsMatch?.bookmakers?.[0]?.markets?.[0]?.outcomes?.find(o => o.name === homeTeam);
 
-            if (!hrHome) continue;
+            // NO MOCK DATA: Skip if Hard Rock odds aren't available
+            if (hrHome) {
+                const amOdds = hrHome.price;
+                const bookProb = amToProb(amOdds);
+                const gap = homeWP - bookProb;
 
-            const amOdds = hrHome.price_american ?? hrHome.price ?? 0;
-            const bookProb = amToProb(amOdds);
-            const gap = homeWP - bookProb;
+                if (gap >= THRESHOLD) alarmTriggered = true;
 
-            updateGapHistory(gamePk, gap);
-            if (gap >= THRESHOLD) alarmTriggered = true;
-
-            const momentum = getMomentum(gamePk);
-
-            tableRows.push({
-                gamePk,
-                homeTeam,
-                city: shortTeamLabel(homeTeam),
-                inn: inningLabel(game),
-                score: formatScore(game),
-                bookProb: bookProb.toFixed(1) + '%',
-                bookProbVal: bookProb,
-                mlbWP: homeWP.toFixed(1) + '%',
-                mlbWPVal: homeWP,
-                gap: gap.toFixed(1) + '%',
-                gapVal: gap,
-                hrOdds: amOdds,
-                modelOdds: probToAm(homeWP),
-                isLive: isLive(game),
-                momentum
-            });
+                tableRows.push({
+                    city: homeTeam.split(' ').pop(),
+                    inn: game.linescore?.currentInningOrdinal ? (game.linescore.inningHalf === 'top' ? '▲' : '▼') + game.linescore.currentInningOrdinal : 'PRE',
+                    score: `${game.teams.away.score || 0}-${game.teams.home.score || 0}`,
+                    bookProb: bookProb.toFixed(1) + '%',
+                    mlbWP: homeWP.toFixed(1) + '%',
+                    gap: gap.toFixed(1) + '%',
+                    gapVal: gap,
+                    hrOdds: amOdds > 0 ? '+' + amOdds : amOdds,
+                    modelOdds: probToAm(homeWP),
+                    isLive: game.status.abstractGameState === 'Live'
+                });
+            }
         }
 
+        // Final sort by gap magnitude
         tableRows.sort((a, b) => b.gapVal - a.gapVal);
-
-        const tbody = document.getElementById('grid-body');
-        tbody.innerHTML = tableRows.map(r => {
-            const gapClass = r.gapVal >= THRESHOLD ? 'gap-high' : 'gap-normal';
-            let momClass = 'momentum-flat';
-            if (r.momentum.dir === 'up') momClass = 'momentum-up';
-            else if (r.momentum.dir === 'down') momClass = 'momentum-down';
-
-            const momLabel = r.momentum.delta.toFixed(1);
-
-            return `
+        
+        document.getElementById('grid-body').innerHTML = tableRows.length > 0 
+            ? tableRows.map(r => `
                 <tr>
-                    <td class="${r.isLive ? 'live' : ''}">
-                        ${r.city} <small>${r.inn}</small>
-                    </td>
+                    <td class="${r.isLive ? 'live' : ''}">${r.city} <small>${r.inn}</small></td>
                     <td>${r.score}</td>
                     <td>${r.bookProb}</td>
                     <td class="win-pct">${r.mlbWP}</td>
-                    <td class="gap-cell ${gapClass}">${r.gap}</td>
+                    <td class="${r.gapVal >= THRESHOLD ? 'gap-high' : ''}">${r.gap}</td>
                     <td class="odd-val">${r.hrOdds}</td>
                     <td>${r.modelOdds}</td>
-                    <td class="hide-mobile">
-                        <span class="${momClass}">${momLabel}</span>
-                        <span class="sparkline">${r.momentum.spark}</span>
-                    </td>
                 </tr>
-            `;
-        }).join('');
+            `).join('')
+            : '<tr><td colspan="7" style="text-align:center; padding:20px; color:#555;">NO LIVE DATA AVAILABLE</td></tr>';
 
-        if (alarmTriggered) {
-            document.getElementById('alarm-sound').play().catch(() => {});
-        }
-
+        if (alarmTriggered) document.getElementById('alarm-sound').play().catch(() => {});
+        
         apiStatus.innerText = "API: SLEEP";
-        clock.innerText = new Date().toLocaleTimeString();
+        document.getElementById('clock').innerText = new Date().toLocaleTimeString();
+
     } catch (e) {
         console.error(e);
         apiStatus.innerText = "API: ERROR";
@@ -341,7 +144,7 @@ async function update() {
 }
 
 update();
-setInterval(update, POLL_MS);
+setInterval(update, 60000);
 </script>
 </body>
 </html>
