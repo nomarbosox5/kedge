@@ -1,314 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gap King Pro</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
-
-:root {
-  --bg: #0a0f1c;
-  --card: #111827;
-  --border: #1f2937;
-  --text: #f1f5f9;
-  --muted: #94a3b8;
-  --green: #22c55e;
-  --red: #ef4444;
-  --blue: #3b82f6;
-}
-
-* { margin:0; padding:0; box-sizing:border-box; }
-body {
-  font-family: 'Inter', system-ui, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  padding: 16px;
-}
-
-header {
-  text-align: center;
-  margin-bottom: 20px;
-}
-header h1 {
-  font-size: 28px;
-  font-weight: 700;
-}
-header p {
-  color: var(--muted);
-  font-size: 15px;
-}
-
-select {
-  width: 100%;
-  padding: 14px 16px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  color: white;
-  font-size: 16px;
-  margin-bottom: 20px;
-}
-
-.card {
-  background: var(--card);
-  border-radius: 16px;
-  padding: 20px;
-  border: 1px solid var(--border);
-  margin-bottom: 20px;
-}
-
-.team-name {
-  font-size: 26px;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-.vs {
-  color: var(--muted);
-  font-size: 15px;
-}
-
-.stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px;
-  margin: 20px 0;
-}
-.stat {
-  background: #1e2937;
-  padding: 12px;
-  border-radius: 10px;
-  text-align: center;
-}
-.stat-label {
-  font-size: 11px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.stat-value {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 22px;
-  font-weight: 700;
-  margin-top: 4px;
-}
-
-.bar-container {
-  height: 10px;
-  background: #1e2937;
-  border-radius: 999px;
-  overflow: hidden;
-  margin: 16px 0;
-}
-.bar {
-  height: 100%;
-  background: linear-gradient(to right, var(--blue), #60a5fa);
-  transition: width 0.7s ease;
-}
-
-.signal {
-  font-size: 28px;
-  font-weight: 800;
-  padding: 24px 20px;
-  border-radius: 14px;
-  text-align: center;
-  margin: 20px 0;
-  min-height: 90px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 6px;
-}
-.enter { background: rgba(34, 197, 94, 0.15); color: var(--green); border: 2px solid var(--green); }
-.hold  { background: rgba(234, 179, 8, 0.15); color: #eab308; border: 2px solid #eab308; }
-.exit  { background: rgba(239, 68, 68, 0.15); color: var(--red); border: 2px solid var(--red); }
-
-.footer-info {
-  text-align: center;
-  color: var(--muted);
-  font-size: 13px;
-  margin-top: 30px;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kedge | Sports Insights</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #1a1a1a; color: white; padding: 20px; }
+        .container { max-width: 800px; margin: auto; }
+        .card { background: #2a2a2a; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #007bff; }
+        .status { color: #888; font-size: 0.9em; }
+        h1 { color: #007bff; }
+    </style>
 </head>
 <body>
-
-<header>
-  <h1>👑 Gap King Pro</h1>
-  <p>Live Edge vs Hard Rock • One Game Focus</p>
-</header>
-
-<select id="gameSelect" onchange="loadSelectedGame()">
-  <option value="">Loading today's games...</option>
-</select>
-
-<div class="card" id="mainCard" style="display:none;">
-  <div class="team-name" id="teamName">—</div>
-  <div class="vs" id="vsInfo">—</div>
-
-  <div class="stats">
-    <div class="stat">
-      <div class="stat-label">Gumbo Win%</div>
-      <div class="stat-value" id="gumbo">—</div>
+    <div class="container">
+        <h1>Kedge Insights</h1>
+        <div id="status" class="status">Initializing...</div>
+        <div id="output"></div>
     </div>
-    <div class="stat">
-      <div class="stat-label">Hard Rock Implied</div>
-      <div class="stat-value" id="implied">—</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">Edge</div>
-      <div class="stat-value" id="edge">—</div>
-    </div>
-  </div>
 
-  <div class="bar-container">
-    <div id="probBar" class="bar" style="width:50%"></div>
-  </div>
+    <script>
+        // CONFIGURATION
+        const ODDS_API_KEY = '75fbd106886e927c3e800627d3536862'; // Your Odds API Key
+        const CORS_PROXY = "https://corsproxy.io/?url=";
+        
+        const statusEl = document.getElementById('status');
+        const outputEl = document.getElementById('output');
 
-  <div class="signal" id="signal">
-    Select a game to start monitoring
-  </div>
+        async function fetchData() {
+            try {
+                statusEl.innerText = "Fetching live MLB data...";
+                
+                // 1. Fetch MLB Schedule via CORS Proxy
+                const mlbUrl = `${CORS_PROXY}https://statsapi.mlb.com/api/v1/schedule?sportId=1`;
+                const mlbRes = await fetch(mlbUrl);
+                const mlbData = await mlbRes.json();
 
-  <div style="display:flex; justify-content:space-between; font-size:15px; margin-top:10px;">
-    <div>Hard Rock ML: <span id="ml" style="font-family:monospace; font-weight:700;">—</span></div>
-  </div>
-</div>
+                // 2. Fetch Odds via CORS Proxy
+                statusEl.innerText = "Fetching betting lines...";
+                const oddsUrl = `${CORS_PROXY}https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?regions=us&oddsFormat=american&apiKey=${ODDS_API_KEY}`;
+                const oddsRes = await fetch(oddsUrl);
+                const oddsData = await oddsRes.json();
 
-<div class="footer-info">
-  Powered by MLB Gumbo + The Odds API<br>
-  Refreshing every 15 seconds
-</div>
+                displayResults(mlbData, oddsData);
+                statusEl.innerText = "Data updated: " + new Date().toLocaleTimeString();
 
-<script>
-// ================== CONFIG ==================
-const ODDS_API_KEY = '75fbd1947a7dec109b7573b6951a65aa';
-const ENTER_THRESHOLD = 5.0;
-const EXIT_THRESHOLD = -3.0;
-
-let currentGamePk = null;
-let pollTimer = null;
-
-// Moneyline to probability
-function mlToProb(odds) {
-  if (!odds || isNaN(odds)) return 50;
-  return odds < 0 
-    ? (Math.abs(odds) / (Math.abs(odds) + 100)) * 100 
-    : (100 / (odds + 100)) * 100;
-}
-
-// Fetch schedule
-async function loadSchedule() {
-  const select = document.getElementById('gameSelect');
-  try {
-    const today = new Date().toISOString().split('T')[0];
-    const url = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${today}`;
-
-    const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
-    const data = await res.json();
-
-    const games = data.dates?.[0]?.games || [];
-    select.innerHTML = '<option value="">Select a game...</option>';
-
-    games.forEach(g => {
-      const away = g.teams.away.team.abbreviation;
-      const home = g.teams.home.team.abbreviation;
-      const opt = document.createElement('option');
-      opt.value = g.gamePk;
-      opt.textContent = `${away} @ ${home}`;
-      select.appendChild(opt);
-    });
-  } catch (e) {
-    select.innerHTML = '<option value="">Failed to load games</option>';
-  }
-}
-
-// Load selected game
-function loadSelectedGame() {
-  const pk = document.getElementById('gameSelect').value;
-  if (!pk) return;
-
-  currentGamePk = pk;
-  document.getElementById('mainCard').style.display = 'block';
-
-  if (pollTimer) clearInterval(pollTimer);
-  pollData();
-  pollTimer = setInterval(pollData, 15000);
-}
-
-// Main polling
-async function pollData() {
-  if (!currentGamePk) return;
-
-  try {
-    // 1. Gumbo Live Data
-    const liveUrl = `https://statsapi.mlb.com/api/v1.1/game/${currentGamePk}/feed/live`;
-    const liveRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(liveUrl)}`);
-    const liveData = await liveRes.json();
-
-    let gumboProb = 50;
-    const wpPath = liveData?.liveData?.plays?.currentPlay?.about?.homeWinProbability;
-    if (wpPath) gumboProb = wpPath;
-
-    // 2. Odds API
-    const oddsUrl = `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=h2h&oddsFormat=american`;
-    const oddsRes = await fetch(oddsUrl);
-    const oddsList = await oddsRes.json();
-
-    let hardRockML = null;
-    let homeTeam = "Home Team";
-
-    if (Array.isArray(oddsList)) {
-      const gameMatch = oddsList.find(g => String(g.id) === String(currentGamePk));
-      if (gameMatch) {
-        homeTeam = gameMatch.home_team || homeTeam;
-
-        const hardRock = gameMatch.bookmakers?.find(b => 
-          b.title?.toLowerCase().includes("hard rock")
-        );
-
-        if (hardRock) {
-          const outcome = hardRock.markets[0]?.outcomes?.find(o => o.name === gameMatch.home_team);
-          if (outcome) hardRockML = outcome.price;
+            } catch (err) {
+                console.error(err);
+                statusEl.innerText = "Error: Could not load data. Check console.";
+            }
         }
-      }
-    }
 
-    const impliedProb = hardRockML ? mlToProb(hardRockML) : 50;
-    const edge = gumboProb - impliedProb;
+        function displayResults(mlb, odds) {
+            outputEl.innerHTML = '';
+            const games = mlb.dates[0]?.games || [];
 
-    // Update UI
-    document.getElementById('teamName').textContent = homeTeam;
-    document.getElementById('vsInfo').textContent = 'vs Away Team • Live Monitoring';
-    document.getElementById('gumbo').textContent = gumboProb.toFixed(1) + '%';
-    document.getElementById('implied').textContent = impliedProb.toFixed(1) + '%';
-    document.getElementById('edge').textContent = edge.toFixed(1) + '%';
-    document.getElementById('ml').textContent = hardRockML || '—';
+            if (games.length === 0) {
+                outputEl.innerHTML = '<p>No games scheduled for today.</p>';
+                return;
+            }
 
-    document.getElementById('probBar').style.width = `${Math.max(0, Math.min(100, gumboProb))}%`;
+            games.forEach(game => {
+                const homeTeam = game.teams.home.team.name;
+                const awayTeam = game.teams.away.team.name;
+                
+                // Find matching odds for this game
+                const gameOdds = odds.find(o => 
+                    o.home_team.includes(homeTeam) || homeTeam.includes(o.home_team)
+                );
 
-    // Signal
-    const signalEl = document.getElementById('signal');
-    if (edge >= ENTER_THRESHOLD) {
-      signalEl.className = 'signal enter';
-      signalEl.innerHTML = `🟢 ENTER<br><small>Hard Rock is behind by ${edge.toFixed(1)}%</small>`;
-    } else if (edge <= EXIT_THRESHOLD) {
-      signalEl.className = 'signal exit';
-      signalEl.innerHTML = `🔴 EXIT / TAKE PROFIT<br><small>Market has caught up</small>`;
-    } else {
-      signalEl.className = 'signal hold';
-      signalEl.innerHTML = `⚖️ HOLD<br><small>Edge: ${edge.toFixed(1)}% — Waiting</small>`;
-    }
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <strong>${awayTeam} @ ${homeTeam}</strong><br>
+                    <small>Status: ${game.status.abstractGameState}</small><br>
+                    ${gameOdds ? `<span>Odds: ${gameOdds.bookmakers[0]?.markets[0]?.outcomes[0].name} (${gameOdds.bookmakers[0]?.markets[0]?.outcomes[0].price})</span>` : '<span>Odds: Not available</span>'}
+                `;
+                outputEl.appendChild(card);
+            });
+        }
 
-  } catch (err) {
-    console.error(err);
-    document.getElementById('signal').innerHTML = `⚠️ Error fetching data<br><small>Retrying...</small>`;
-  }
-}
-
-// Start everything
-loadSchedule();
-</script>
+        // Run on load
+        fetchData();
+    </script>
 </body>
 </html>
