@@ -20,7 +20,7 @@
         .city-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; overflow-y: auto; }
         .city-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 15px; cursor: pointer; transition: 0.2s; }
         .city-card.state-live { border-color: var(--green); background: rgba(0, 230, 118, 0.1); }
-        .sig-box { border-radius: 16px; padding: 25px; margin: 15px; text-align: center; }
+        .sig-box { border-radius: 16px; padding: 25px; margin: 15px; text-align: center; transition: 0.3s; }
         .sig-box.idle { background: var(--surface); border: 1px solid var(--border); }
         .sig-box.buy { background: #2e0008; border: 2px solid var(--red); animation: flash 0.5s infinite; }
         .sig-action { font-size: 28px; font-weight: 800; margin: 6px 0; }
@@ -47,7 +47,7 @@
     <div class="sig-box idle" id="sig-box">
         <div style="font-size: 11px; font-weight: 800; color: var(--sub); letter-spacing: 1px;">ENGINE STATUS</div>
         <div id="sig-action" class="sig-action">SCANNING</div>
-        <div id="sig-details" style="font-size: 12px; color: var(--sub);">Awaiting data...</div>
+        <div id="sig-details" style="font-size: 12px; color: var(--sub);">Awaiting Gumbo data...</div>
     </div>
     <div class="nums-row">
         <div class="num-card"><div class="nv" id="n-mlb">--</div><div class="nl">MLB WP%</div></div>
@@ -58,10 +58,21 @@
 
 <script>
     const ODDS_KEY = '75fbd1947a7dec109b7573b6951a65aa';[cite: 5]
-    // Public CORS Proxy to fix GitHub Pages loading[cite: 5]
     const PROXY = 'https://corsproxy.io/?'; 
+    const THRESHOLD = 8.0;
     let selectedGame = null;
     let engineInterval = null;
+    let lastKnownWP = null;
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function triggerAlarm(isCritical) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.frequency.value = isCritical ? 880 : 440;[cite: 3]
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        osc.start(); osc.stop(audioCtx.currentTime + (isCritical ? 0.4 : 0.1));
+    }
 
     async function fetchSchedule() {
         try {
@@ -76,46 +87,62 @@
                 card.innerHTML = `<b>${g.teams.home.team.name}</b><br><small>${g.teams.away.team.abbreviation} @ ${g.teams.home.team.abbreviation}</small>`;
                 card.onclick = () => {
                     selectedGame = g;
+                    document.getElementById('matchup-header').textContent = `${g.teams.away.team.abbreviation} @ ${g.teams.home.team.abbreviation}`;
                     document.getElementById('screen-pick').classList.remove('active');
                     document.getElementById('screen-watch').classList.add('active');
                     runEngine();
-                    engineInterval = setInterval(runEngine, 5000); 
+                    engineInterval = setInterval(runEngine, 2000); 
                 };
                 grid.appendChild(card);
             });
-        } catch (e) { document.getElementById('city-grid').innerText = "Load Error. Check Console."; }
+        } catch (e) { document.getElementById('city-grid').innerText = "CORS/Load Error. Refresh."; }
     }
 
     async function runEngine() {
         if (!selectedGame) return;
         try {
-            // Fetch MLB Win Prob[cite: 3]
+            // MLB Win Prob with Sticky Logic[cite: 3]
             const mlbR = await fetch(PROXY + encodeURIComponent(`https://statsapi.mlb.com/api/v1.1/game/${selectedGame.gamePk}/feed/live`));[cite: 3, 5]
             const mlbD = await mlbR.json();
-            const wp = mlbD.liveData?.plays?.currentPlay?.about?.homeWinProbability || 50;[cite: 3]
+            let wp = mlbD.liveData?.plays?.currentPlay?.about?.homeWinProbability;
             
-            // Fetch Market Odds[cite: 5]
+            if (wp === undefined || wp === null) {
+                const all = mlbD.liveData?.plays?.allPlays || [];
+                wp = all.length > 0 ? all[all.length - 1]?.about?.homeWinProbability : null;[cite: 3]
+            }
+
+            if (wp !== null) {
+                lastKnownWP = wp;
+                document.getElementById('n-mlb').innerText = wp.toFixed(1) + '%';
+            }
+
+            // Market Odds[cite: 5]
             const oddsR = await fetch(PROXY + encodeURIComponent(`https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${ODDS_KEY}&regions=us&markets=h2h`));[cite: 5]
             const oddsD = await oddsR.json();
             const gameOdds = oddsD.find(o => o.home_team.includes(selectedGame.teams.home.team.name));
             
-            let bookProb = 50;
+            let bookProb = 0;
             if (gameOdds?.bookmakers[0]) {
                 const price = gameOdds.bookmakers[0].markets[0].outcomes.find(out => out.name === selectedGame.teams.home.team.name)?.price;
                 if (price) bookProb = (1 / price) * 100;
             }
 
-            const gap = wp - bookProb;
-            document.getElementById('n-mlb').innerText = wp.toFixed(1) + '%';
-            document.getElementById('n-book').innerText = bookProb.toFixed(1) + '%';
-            document.getElementById('n-gap').innerText = (gap >= 0 ? '+' : '') + gap.toFixed(1) + '%';
-            
-            if (gap >= 8.0) {[cite: 3]
-                document.getElementById('sig-box').className = 'sig-box buy';
-                document.getElementById('sig-action').innerText = '🔥 STRIKE NOW';
-            } else {
-                document.getElementById('sig-box').className = 'sig-box idle';
-                document.getElementById('sig-action').innerText = 'MONITORING';
+            if (bookProb > 0) document.getElementById('n-book').innerText = bookProb.toFixed(1) + '%';
+
+            if (lastKnownWP && bookProb > 0) {
+                const gap = lastKnownWP - bookProb;
+                const gapEl = document.getElementById('n-gap');
+                gapEl.innerText = (gap >= 0 ? '+' : '') + gap.toFixed(1) + '%';
+                gapEl.style.color = gap >= THRESHOLD ? 'var(--green)' : 'var(--text)';
+
+                if (gap >= THRESHOLD) {[cite: 3]
+                    document.getElementById('sig-box').className = 'sig-box buy';
+                    document.getElementById('sig-action').innerText = '🔥 STRIKE NOW';
+                    triggerAlarm(true);
+                } else {
+                    document.getElementById('sig-box').className = 'sig-box idle';
+                    document.getElementById('sig-action').innerText = 'MONITORING';
+                }
             }
         } catch (e) { console.error(e); }
     }
