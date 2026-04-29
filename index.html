@@ -87,6 +87,7 @@
   <script>
     const STORAGE_KEY = 'edge_tracker_odds_key';
     const POLL_MS = 30000;
+    const ODDS_KEY = '75fbd1947a7dec109b7573b6951a65aa';
     const PREFERRED_BOOK = /hard\s*rock/i;
     const FALLBACK_BOOKS = [/draftkings/i, /fanduel/i, /betmgm/i, /caesars/i];
 
@@ -130,7 +131,7 @@
     }
 
     async function fetchOdds() {
-      const apiKey = $('apiKey').value.trim();
+      const apiKey = $('apiKey').value.trim() || ODDS_KEY;
       if (!apiKey) throw new Error('Missing API key');
       const url = `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${encodeURIComponent(apiKey)}&regions=us&markets=h2h`;
       const res = await fetch(url);
@@ -213,7 +214,7 @@
 
     function init() {
       const savedKey = localStorage.getItem(STORAGE_KEY);
-      if (savedKey) $('apiKey').value = savedKey;
+      $('apiKey').value = savedKey || ODDS_KEY;
 
       $('saveKeyBtn').addEventListener('click', () => {
         localStorage.setItem(STORAGE_KEY, $('apiKey').value.trim());
