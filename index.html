@@ -1,143 +1,128 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Gap King Pro</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
-        :root {
-            --bg: #0f1120; --surface: #1a1d2e; --border: #2d324d; --text: #fff; --sub: #94a3b8;
-            --green: #00e676; --red: #ff1744; --amber: #ffea00; --blue: #2979ff;
-            --sans: 'Inter', sans-serif; --mono: 'JetBrains Mono', monospace;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        body { font-family: var(--sans); background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
-        .screen { display: none; height: 100vh; flex-direction: column; }
-        .screen.active { display: flex; }
-        .hdr { background: var(--surface); border-bottom: 1px solid var(--border); padding: 15px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
-        .hdr-name { font-size: 20px; font-weight: 800; color: var(--green); }
-        .city-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; overflow-y: auto; }
-        .city-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 15px; cursor: pointer; transition: 0.2s; }
-        .city-card.state-live { border-color: var(--green); background: rgba(0, 230, 118, 0.1); }
-        .sig-box { border-radius: 16px; padding: 25px; margin: 15px; text-align: center; }
-        .sig-box.idle { background: var(--surface); border: 1px solid var(--border); }
-        .sig-box.buy { background: #2e0008; border: 2px solid var(--red); animation: flash 0.5s infinite; }
-        .sig-action { font-size: 24px; font-weight: 800; margin: 5px 0; }
-        @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-        .nums-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 0 15px; }
-        .num-card { background: var(--surface); padding: 15px; border-radius: 12px; border: 1px solid var(--border); text-align: center; }
-        .nv { font-family: var(--mono); font-size: 20px; font-weight: 700; }
-        .nl { font-size: 9px; color: var(--sub); margin-top: 4px; text-transform: uppercase; }
-        .back-btn { border: none; background: none; color: var(--blue); font-weight: 800; cursor: pointer; }
-    </style>
+  <title>Live Betting Edge Tracker</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #0b0f14;
+      color: white;
+      text-align: center;
+    }
+    .card {
+      background: #121821;
+      padding: 20px;
+      margin: 20px auto;
+      width: 400px;
+      border-radius: 12px;
+    }
+    .green { color: #00ff99; }
+    .red { color: #ff4d4d; }
+    .yellow { color: #ffd966; }
+    .bar {
+      height: 20px;
+      background: #222;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .fill {
+      height: 100%;
+      background: #00ff99;
+    }
+  </style>
 </head>
+
 <body>
 
-<div class="screen active" id="screen-pick">
-    <div class="hdr"><div class="hdr-name">GAP KING PRO</div></div>
-    <div class="city-grid" id="city-grid">Loading Games...</div>
-</div>
+<h1>⚡ Live Edge Tracker</h1>
 
-<div class="screen" id="screen-watch">
-    <div class="hdr">
-        <button class="back-btn" onclick="goBack()">‹ TEAMS</button>
-        <div id="matchup-header" style="font-weight: 700;">LIVE FEED</div>
-    </div>
-    <div class="sig-box idle" id="sig-box">
-        <div style="font-size: 10px; color: var(--sub); font-weight: 800;">STATUS</div>
-        <div id="sig-action" class="sig-action">SCANNING</div>
-        <div id="sig-details" style="font-size: 12px; color: var(--sub);">Connecting to MLB Gumbo...</div>
-    </div>
-    <div class="nums-row">
-        <div class="num-card"><div class="nv" id="n-mlb">--</div><div class="nl">MLB WP%</div></div>
-        <div class="num-card"><div class="nv" id="n-book">--</div><div class="nl">BOOK %</div></div>
-        <div class="num-card"><div class="nv" id="n-gap">--</div><div class="nl">GAP</div></div>
-    </div>
+<div class="card">
+  <h2 id="team">Loading...</h2>
+
+  <p>Gumbo Win %: <span id="gumbo"></span></p>
+  <p>Market Implied %: <span id="market"></span></p>
+  <p>Edge: <span id="edge"></span></p>
+
+  <h2 id="signal"></h2>
+
+  <div class="bar">
+    <div id="barFill" class="fill"></div>
+  </div>
 </div>
 
 <script>
-    const ODDS_KEY = '75fbd1947a7dec109b7573b6951a65aa';[cite: 5]
-    const PROXY = 'https://corsproxy.io/?'; // Essential for GitHub Pages[cite: 5, 6]
-    let selectedGame = null;
-    let engineInterval = null;
-    let lastWP = null; // Sticky WP logic[cite: 3]
+const ODDS_API_KEY = "YOUR_ODDS_API_KEY";
 
-    async function fetchSchedule() {
-        try {
-            const url = 'https://statsapi.mlb.com/api/v1/schedule?sportId=1';
-            const r = await fetch(PROXY + encodeURIComponent(url));[cite: 5]
-            const d = await r.json();
-            const games = d.dates[0]?.games || [];
-            const grid = document.getElementById('city-grid');
-            grid.innerHTML = '';
-            games.forEach(g => {
-                const card = document.createElement('div');
-                card.className = `city-card ${g.status.detailedState === 'In Progress' ? 'state-live' : ''}`;
-                card.innerHTML = `<b>${g.teams.home.team.name}</b><br><small>${g.teams.away.team.abbreviation} @ ${g.teams.home.team.abbreviation}</small>`;
-                card.onclick = () => startEngine(g);
-                grid.appendChild(card);
-            });
-        } catch (e) { document.getElementById('city-grid').innerText = "Schedule Load Error."; }
+// convert moneyline → probability
+function moneylineToProb(odds) {
+  if (odds < 0) {
+    return Math.abs(odds) / (Math.abs(odds) + 100);
+  } else {
+    return 100 / (odds + 100);
+  }
+}
+
+// fetch Hard Rock odds via OddsAPI
+async function getOdds() {
+  const res = await fetch(`https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=h2h`);
+  const data = await res.json();
+
+  // find Hard Rock odds
+  for (let game of data) {
+    for (let book of game.bookmakers) {
+      if (book.title.includes("Hard Rock")) {
+        return {
+          team: game.home_team,
+          odds: book.markets[0].outcomes[0].price
+        };
+      }
     }
+  }
+}
 
-    function startEngine(g) {
-        selectedGame = g;
-        document.getElementById('screen-pick').classList.remove('active');
-        document.getElementById('screen-watch').classList.add('active');
-        document.getElementById('matchup-header').innerText = `${g.teams.away.team.abbreviation} @ ${g.teams.home.team.abbreviation}`;
-        engineInterval = setInterval(runLoop, 3000); // 3-second refresh[cite: 3]
-        runLoop();
-    }
+// fake Gumbo for now (replace with real API)
+async function getGumboProb() {
+  // replace this with your Gumbo endpoint
+  return Math.random() * 0.2 + 0.6; // 60–80% sim
+}
 
-    async function runLoop() {
-        if (!selectedGame) return;
-        try {
-            // MLB Live Feed (Gumbo)[cite: 3, 5]
-            const mlbUrl = `https://statsapi.mlb.com/api/v1.1/game/${selectedGame.gamePk}/feed/live`;
-            const mlbR = await fetch(PROXY + encodeURIComponent(mlbUrl));[cite: 5]
-            const mlbD = await mlbR.json();
-            
-            // Sticky Win Probability logic[cite: 3]
-            let wp = mlbD.liveData?.plays?.currentPlay?.about?.homeWinProbability;
-            if (wp == null) {
-                const all = mlbD.liveData?.plays?.allPlays || [];
-                wp = all.length > 0 ? all[all.length - 1]?.about?.homeWinProbability : lastWP;[cite: 3]
-            }
-            if (wp != null) { lastWP = wp; document.getElementById('n-mlb').innerText = wp.toFixed(1) + '%'; }
+// main loop
+async function update() {
+  const oddsData = await getOdds();
+  const gumboProb = await getGumboProb();
 
-            // Market Odds[cite: 5]
-            const oddsUrl = `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${ODDS_KEY}&regions=us&markets=h2h`;
-            const oddsR = await fetch(PROXY + encodeURIComponent(oddsUrl));[cite: 5]
-            const oddsD = await oddsR.json();
-            const gameOdds = oddsD.find(o => o.home_team.includes(selectedGame.teams.home.team.name));
+  if (!oddsData) return;
 
-            if (gameOdds?.bookmakers[0] && lastWP) {
-                const price = gameOdds.bookmakers[0].markets[0].outcomes.find(out => out.name === selectedGame.teams.home.team.name)?.price;
-                const bookProb = (1 / price) * 100;
-                const gap = lastWP - bookProb;
+  const implied = moneylineToProb(oddsData.odds);
+  const edge = gumboProb - implied;
 
-                document.getElementById('n-book').innerText = bookProb.toFixed(1) + '%';
-                document.getElementById('n-gap').innerText = (gap >= 0 ? '+' : '') + gap.toFixed(1) + '%';
+  // UI updates
+  document.getElementById("team").innerText = oddsData.team;
+  document.getElementById("gumbo").innerText = (gumboProb*100).toFixed(1) + "%";
+  document.getElementById("market").innerText = (implied*100).toFixed(1) + "%";
+  document.getElementById("edge").innerText = (edge*100).toFixed(2) + "%";
 
-                if (gap >= 8.0) {[cite: 3]
-                    document.getElementById('sig-box').className = 'sig-box buy';
-                    document.getElementById('sig-action').innerText = '🔥 STRIKE NOW';
-                } else {
-                    document.getElementById('sig-box').className = 'sig-box idle';
-                    document.getElementById('sig-action').innerText = 'MONITORING';
-                }
-            }
-        } catch (e) { console.error("Loop Error:", e); }
-    }
+  const signal = document.getElementById("signal");
 
-    function goBack() {
-        clearInterval(engineInterval);
-        document.getElementById('screen-watch').classList.remove('active');
-        document.getElementById('screen-pick').classList.add('active');
-    }
+  if (edge > 0.05) {
+    signal.innerText = "🟢 ENTER";
+    signal.className = "green";
+  } else if (edge < -0.03) {
+    signal.innerText = "🔴 EXIT";
+    signal.className = "red";
+  } else {
+    signal.innerText = "⚖️ HOLD";
+    signal.className = "yellow";
+  }
 
-    fetchSchedule();
+  document.getElementById("barFill").style.width = (gumboProb*100) + "%";
+}
+
+// refresh every 5 seconds
+setInterval(update, 5000);
+update();
 </script>
+
 </body>
 </html>
