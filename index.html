@@ -19,7 +19,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);height:100vh
 
 /* HEADER */
 .hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:15px;flex-shrink:0;display:flex;justify-content:space-between;align-items:center}
-.hdr-name{font-size:22px;font-weight:800;letter-spacing:-.03em;color:var(--green)}
+.hdr-name{font-size:20px;font-weight:800;letter-spacing:-.03em;color:var(--green)}
 
 /* CITY GRID */
 .city-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:15px;overflow-y:auto}
@@ -61,6 +61,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);height:100vh
 <div class="screen" id="screen-watch">
   <div class="hdr">
     <button onclick="goBack()" style="border:none;background:none;color:var(--blue);font-weight:800;font-size:15px">‹ TEAMS</button>
+    <div class="hdr-name" id="matchup-header">LIVE FEED</div>
   </div>
   
   <div class="sig-box idle" id="sig-box">
@@ -89,7 +90,6 @@ const WARN_LEVEL = 5.0;
 let selectedGame = null;
 let pollInterval = null;
 
-// FX ENGINE
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function sfx(freq, duration) {
     const osc = audioCtx.createOscillator();
@@ -115,9 +115,11 @@ async function fetchSchedule() {
             card.innerHTML = `<b>${g.teams.home.team.name.split(' ').pop()}</b><br><small>${g.teams.away.team.abbreviation} @ ${g.teams.home.team.abbreviation}</small>`;
             card.onclick = () => {
                 selectedGame = g;
+                document.getElementById('matchup-header').textContent = `${g.teams.away.team.abbreviation} @ ${g.teams.home.team.abbreviation}`;
                 document.getElementById('screen-pick').classList.remove('active');
                 document.getElementById('screen-watch').classList.add('active');
-                poll(); pollInterval = setInterval(poll, 60000);
+                poll(); 
+                pollInterval = setInterval(poll, 60000);
             };
             grid.appendChild(card);
         });
@@ -127,13 +129,9 @@ async function fetchSchedule() {
 async function manualSync() {
     const btn = document.getElementById('sync-btn');
     const icon = document.getElementById('sync-icon');
-    btn.disabled = true;
-    icon.textContent = '⏳';
+    btn.disabled = true; icon.textContent = '⏳';
     await poll();
-    setTimeout(() => {
-        btn.disabled = false;
-        icon.textContent = '🔄';
-    }, 2000);
+    setTimeout(() => { btn.disabled = false; icon.textContent = '🔄'; }, 2000);
 }
 
 async function poll() {
@@ -141,14 +139,33 @@ async function poll() {
     try {
         const mlbR = await fetch(`/mlb-proxy/api/v1.1/game/${selectedGame.gamePk}/feed/live`);
         const mlbD = await mlbR.json();
-        const wp = mlbD.liveData?.plays?.currentPlay?.about?.homeWinProbability || 50;
+        
+        // FIX: Capture home Win Prob, but don't default to 50 if missing
+        const wp = mlbD.liveData?.plays?.currentPlay?.about?.homeWinProbability;
+
+        if (wp === undefined || wp === null) {
+            document.getElementById('sig-action').textContent = 'AWAITING DATA';
+            document.getElementById('sig-why').textContent = 'GAME START PENDING';
+            return;
+        }
 
         const oddsR = await fetch(`/odds-proxy/v4/sports/baseball_mlb/odds/?apiKey=${ODDS_KEY}&regions=us&markets=h2h`);
         const oddsD = await oddsR.json();
-        const gameOdds = oddsD.find(o => o.home_team.includes(selectedGame.teams.home.team.name));
-        const bookProb = gameOdds ? (1 / gameOdds.bookmakers[0].markets[0].outcomes[0].price) * 100 : 50;
+        
+        // FIX: Improved name matching
+        const homeName = selectedGame.teams.home.team.name.toLowerCase();
+        const gameOdds = oddsD.find(o => o.home_team.toLowerCase().includes(homeName) || homeName.includes(o.home_team.toLowerCase()));
+        
+        let bookProb = 0;
+        if (gameOdds && gameOdds.bookmakers[0]) {
+            const outcome = gameOdds.bookmakers[0].markets[0].outcomes.find(out => 
+                out.name.toLowerCase().includes(homeName) || homeName.includes(out.name.toLowerCase())
+            );
+            if (outcome) bookProb = (1 / outcome.price) * 100;
+        }
 
-        updateUI(wp, bookProb);
+        if (bookProb > 0) updateUI(wp, bookProb);
+        
     } catch (e) { console.error("Poll Error", e); }
 }
 
@@ -166,11 +183,11 @@ function updateUI(mlb, book) {
     if (gap >= THRESHOLD) {
         box.className = 'sig-box buy'; act.textContent = 'STRIKE NOW';
         why.textContent = 'MODEL PEAK GAP';
-        sfx(880, 0.4); setTimeout(() => sfx(1100, 0.2), 100); // Massive siren
+        sfx(880, 0.4);
     } else if (gap >= WARN_LEVEL) {
         box.className = 'sig-box warn'; act.textContent = 'EDGE FORMING';
         why.textContent = 'MARKET LAG DETECTED';
-        sfx(440, 0.1); // Alert ping
+        sfx(440, 0.1);
     } else {
         box.className = 'sig-box idle'; act.textContent = 'MONITORING';
         why.textContent = 'LINES ARE FLAT';
