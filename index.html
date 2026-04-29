@@ -115,6 +115,7 @@ async function fetchSchedule() {
             card.innerHTML = `<b>${g.teams.home.team.name.split(' ').pop()}</b><br><small>${g.teams.away.team.abbreviation} @ ${g.teams.home.team.abbreviation}</small>`;
             card.onclick = () => {
                 selectedGame = g;
+                // FIX: Proper header naming
                 document.getElementById('matchup-header').textContent = `${g.teams.away.team.abbreviation} @ ${g.teams.home.team.abbreviation}`;
                 document.getElementById('screen-pick').classList.remove('active');
                 document.getElementById('screen-watch').classList.add('active');
@@ -140,26 +141,29 @@ async function poll() {
         const mlbR = await fetch(`/mlb-proxy/api/v1.1/game/${selectedGame.gamePk}/feed/live`);
         const mlbD = await mlbR.json();
         
-        // FIX: Capture home Win Prob, but don't default to 50 if missing
+        // FIX: Only use valid win probability. NO MORE 50% GHOSTING.
         const wp = mlbD.liveData?.plays?.currentPlay?.about?.homeWinProbability;
 
         if (wp === undefined || wp === null) {
             document.getElementById('sig-action').textContent = 'AWAITING DATA';
             document.getElementById('sig-why').textContent = 'GAME START PENDING';
+            document.getElementById('n-mlb').textContent = '--';
+            document.getElementById('n-book').textContent = '--';
+            document.getElementById('n-gap').textContent = '--';
             return;
         }
 
         const oddsR = await fetch(`/odds-proxy/v4/sports/baseball_mlb/odds/?apiKey=${ODDS_KEY}&regions=us&markets=h2h`);
         const oddsD = await oddsR.json();
         
-        // FIX: Improved name matching
-        const homeName = selectedGame.teams.home.team.name.toLowerCase();
-        const gameOdds = oddsD.find(o => o.home_team.toLowerCase().includes(homeName) || homeName.includes(o.home_team.toLowerCase()));
+        // FIX: Match by team abbreviation or name to ensure data hits
+        const homeAbbr = selectedGame.teams.home.team.abbreviation;
+        const gameOdds = oddsD.find(o => o.home_team.includes(selectedGame.teams.home.team.name) || o.home_team.includes(homeAbbr));
         
         let bookProb = 0;
         if (gameOdds && gameOdds.bookmakers[0]) {
             const outcome = gameOdds.bookmakers[0].markets[0].outcomes.find(out => 
-                out.name.toLowerCase().includes(homeName) || homeName.includes(out.name.toLowerCase())
+                out.name.includes(selectedGame.teams.home.team.name) || out.name.includes(homeAbbr)
             );
             if (outcome) bookProb = (1 / outcome.price) * 100;
         }
