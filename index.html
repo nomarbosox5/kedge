@@ -27,35 +27,3 @@
 </div>
 
 <table id="main-table">
-    <thead>
-        <tr>
-            <th width="20%">CITY/INN</th>
-            <th width="10%">SCORE</th>
-            <th width="12%">BOOK %</th>
-            <th width="12%">MLB %</th>
-            <th width="12%">GAP %</th>
-            <th width="12%">HR ODDS</th>
-            <th width="12%">MODEL</th>
-        </tr>
-    </thead>
-    <tbody id="grid-body"></tbody>
-</table>
-
-<audio id="alarm-sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
-
-<script>
-const ODDS_KEY = '75fbd1947a7dec109b7573b6951a65aa';
-const THRESHOLD = 8.0;
-
-// Proxy abstraction: easy to swap later to Cloudflare Worker / better proxy
-const PROXY_BASE = "https://corsproxy.io/?url=";
-// For 1–C later, you’ll just change PROXY_BASE to your worker URL.
-
-function proxied(url) {
-    return PROXY_BASE + encodeURIComponent(url);
-}
-
-function amToProb(odds) {
-    const n = parseFloat(odds);
-    if (isNaN(n) || n === 0) return 0;
-    return n
