@@ -3,166 +3,154 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Gap King Pro | Manual Sync</title>
+<title>Gap King Pro</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&family=JetBrains+Mono:wght@700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  --bg:#0f1120;--surface:#1a1d2e;--border:#2d324d;--text:#fff;--sub:#94a3b8;
-  --green:#00e676;--red:#ff1744;--amber:#ffea00;--blue:#2979ff;
-  --sans:'Inter',sans-serif;--mono:'JetBrains Mono',monospace
+  --bg:#f0f2f7;--surface:#fff;--border:#dde1ec;--text:#0f1120;--sub:#5a6180;--muted:#9096b0;
+  --green:#00a85a;--gl:#e6f7ef;--gb:#7dd4aa;
+  --red:#e8203a;--rl:#fef0f2;--rb:#f5aab5;
+  --blue:#2563eb;--sans:'Inter',sans-serif;--mono:'JetBrains Mono',monospace
 }
 body{font-family:var(--sans);background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
 .screen{display:none;height:100vh;flex-direction:column}
 .screen.active{display:flex}
 
-.hdr{padding:18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
-.hdr-logo{font-size:20px;font-weight:800;color:var(--green)}
+/* HEADER */
+.hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:15px;flex-shrink:0}
+.hdr-name{font-size:22px;font-weight:800;letter-spacing:-.03em}
 
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:15px;overflow-y:auto}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:15px;cursor:pointer}
-.card.live{border-color:var(--green);box-shadow:0 0 10px rgba(0,230,118,0.2)}
+/* CITY GRID */
+.city-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px;overflow-y:auto}
+.city-card{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:12px;cursor:pointer}
+.city-card.state-live{border-color:var(--gb);background:var(--gl)}
 
-.sig-box{margin:15px;padding:25px;border-radius:16px;text-align:center;transition:0.3s}
-.sig-box.idle{background:var(--surface);border:1px solid var(--border)}
-.sig-box.warn{background:#2e2600;border:2px solid var(--amber);animation:pulse 1s infinite}
-.sig-box.buy{background:#2e0008;border:2px solid var(--red);animation:flash 0.5s infinite}
-@keyframes flash{0%,100%{opacity:1}50%{opacity:0.6}}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+/* WATCH SCREEN */
+.sig-box{border-radius:14px;padding:20px;margin:10px;text-align:center;transition:all 0.3s}
+.sig-box.idle{background:var(--surface);border:1.5px solid var(--border)}
+.sig-box.warn{background:#fffbeb;border:2px solid #fcd34d;animation:pulse 1s infinite}
+.sig-box.buy{background:var(--rl);border:2px solid var(--rb);animation:flash 0.5s infinite}
 
-.sig-status{font-size:12px;font-weight:800;color:var(--sub);letter-spacing:2px}
-.sig-action{font-size:28px;font-weight:800;margin:5px 0}
-.sig-why{font-size:14px;font-weight:700;color:var(--amber);text-transform:uppercase}
+.sig-why{font-size:14px;font-weight:700;text-transform:uppercase;margin-top:8px;color:var(--sub)}
 
-.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:0 15px}
-.stat-card{background:var(--surface);padding:15px;border-radius:12px;text-align:center}
-.v{font-family:var(--mono);font-size:22px;color:var(--text)}
-.l{font-size:10px;color:var(--sub);margin-top:4px}
+@keyframes flash{0%{opacity:1}50%{opacity:0.7}100%{opacity:1}}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
 
-.manual-row{padding:15px;display:flex;justify-content:center}
-.sync-btn{background:var(--blue);color:#fff;border:none;padding:12px 24px;border-radius:30px;font-weight:800;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:0.2s}
-.sync-btn:active{transform:scale(0.95);background:#1e56cc}
-.sync-btn:disabled{background:var(--border);opacity:0.6}
+.nums-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 10px}
+.num-card{background:var(--surface);padding:15px;border-radius:12px;border:1px solid var(--border);text-align:center}
+.nv{font-family:var(--mono);font-size:20px;font-weight:700}
+.nl{font-size:10px;color:var(--muted);text-transform:uppercase}
 </style>
 </head>
 <body>
 
-<div class="screen active" id="list">
-  <div class="hdr"><div class="hdr-logo">GAP KING PRO</div></div>
-  <div class="grid" id="grid">Loading Games...</div>
+<div class="screen active" id="screen-pick">
+  <div class="hdr"><div class="hdr-name">👑 Gap King</div></div>
+  <div class="city-grid" id="city-grid">Loading...</div>
 </div>
 
-<div class="screen" id="watch">
-  <div class="hdr"><button onclick="back()" style="background:none;border:none;color:var(--blue);font-weight:700">‹ TEAMS</button></div>
-  <div class="sig-box idle" id="box">
-    <div class="sig-status">ENGINE STATUS</div>
-    <div class="sig-action" id="act">SCANNING</div>
-    <div class="sig-why" id="why">READY FOR DATA</div>
+<div class="screen" id="screen-watch">
+  <div class="hdr"><button onclick="goBack()" style="border:none;background:none;color:var(--blue);font-weight:700">‹ Back</button></div>
+  <div class="sig-box idle" id="sig-box">
+    <div style="font-size:12px;font-weight:800;color:var(--muted)">LIVE SIGNAL</div>
+    <div id="sig-action" style="font-size:24px;font-weight:800">CONNECTING</div>
+    <div class="sig-why" id="sig-why">--- --- ---</div>
   </div>
-  <div class="stats">
-    <div class="stat-card"><div class="v" id="v-mlb">--</div><div class="l">MLB WP%</div></div>
-    <div class="stat-card"><div class="v" id="v-book">--</div><div class="l">BOOK %</div></div>
-    <div class="stat-card"><div class="v" id="v-gap">--</div><div class="l">THE GAP</div></div>
-  </div>
-  <div class="manual-row">
-    <button class="sync-btn" id="sync-btn" onclick="manualSync()">
-      <span>🔄</span> SYNC ODDS
-    </button>
+  <div class="nums-row">
+    <div class="num-card"><div class="nv" id="n-mlb">0%</div><div class="nl">MLB</div></div>
+    <div class="num-card"><div class="nv" id="n-book">0%</div><div class="nl">BOOK</div></div>
+    <div class="num-card"><div class="nv" id="n-gap">0%</div><div class="nl">GAP</div></div>
   </div>
 </div>
 
 <script>
-const KEY = '75fbd1947a7dec109b7573b6951a65aa'; 
-let current = null;
-let poller = null;
+const ODDS_KEY = '75fbd1947a7dec109b7573b6951a65aa';
+const THRESHOLD = 8.0;
+const WARN_LEVEL = 5.0;
+let selectedGame = null;
+let pollInterval = null;
 
-const audio = new (window.AudioContext || window.webkitAudioContext)();
-function sfx(f, d) {
-  const o = audio.createOscillator(); const g = audio.createGain();
-  o.connect(g); g.connect(audio.destination);
-  o.frequency.value = f; g.gain.setValueAtTime(0.1, audio.currentTime);
-  o.start(); o.stop(audio.currentTime + d);
+// Audio Contexts
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playTone(freq, duration) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
 }
 
-async function load() {
-  const r = await fetch('/mlb-proxy/api/v1/schedule?sportId=1');
-  const d = await r.json();
-  const gms = d.dates[0]?.games || [];
-  const container = document.getElementById('grid');
-  container.innerHTML = '';
-  gms.forEach(g => {
-    const isLive = g.status.detailedState === 'In Progress';
-    const div = document.createElement('div');
-    div.className = `card ${isLive ? 'live' : ''}`;
-    div.innerHTML = `<strong>${g.teams.home.team.name.split(' ').pop()}</strong><br><small>${g.teams.away.team.abbreviation} @ ${g.teams.home.team.abbreviation}</small>`;
-    div.onclick = () => start(g);
-    container.appendChild(div);
-  });
-}
-
-async function start(g) {
-  current = g;
-  document.getElementById('list').classList.remove('active');
-  document.getElementById('watch').classList.add('active');
-  poll(); poller = setInterval(poll, 60000); 
-}
-
-async function manualSync() {
-  const btn = document.getElementById('sync-btn');
-  btn.disabled = true;
-  btn.querySelector('span').textContent = '⏳';
-  await poll();
-  setTimeout(() => {
-    btn.disabled = false;
-    btn.querySelector('span').textContent = '🔄';
-  }, 2000);
+async function fetchSchedule() {
+    const r = await fetch('/mlb-proxy/api/v1/schedule?sportId=1');
+    const d = await r.json();
+    const games = d.dates[0]?.games || [];
+    const grid = document.getElementById('city-grid');
+    grid.innerHTML = '';
+    games.forEach(g => {
+        const card = document.createElement('div');
+        const isLive = g.status.detailedState === 'In Progress';
+        card.className = `city-card ${isLive ? 'state-live' : ''}`;
+        card.innerHTML = `<b>${g.teams.home.team.name.split(' ').pop()}</b><br><small>${g.teams.away.team.abbreviation} @ ${g.teams.home.team.abbreviation}</small>`;
+        card.onclick = () => {
+            selectedGame = g;
+            document.getElementById('screen-pick').classList.remove('active');
+            document.getElementById('screen-watch').classList.add('active');
+            poll(); pollInterval = setInterval(poll, 60000);
+        };
+        grid.appendChild(card);
+    });
 }
 
 async function poll() {
-  if(!current) return;
-  try {
-    const mlbR = await fetch(`/mlb-proxy/api/v1.1/game/${current.gamePk}/feed/live`);
-    const mlbD = await mlbR.json();
-    const wp = mlbD.liveData?.plays?.currentPlay?.about?.homeWinProbability || 50;
+    if(!selectedGame) return;
+    try {
+        const mlbR = await fetch(`/mlb-proxy/api/v1.1/game/${selectedGame.gamePk}/feed/live`);
+        const mlbD = await mlbR.json();
+        const wp = mlbD.liveData?.plays?.currentPlay?.about?.homeWinProbability || 50;
 
-    const oddsR = await fetch(`/odds-proxy/v4/sports/baseball_mlb/odds/?apiKey=${KEY}&regions=us&markets=h2h`);
-    const oddsD = await oddsR.json();
-    const match = oddsD.find(o => o.home_team.includes(current.teams.home.team.name));
-    const book = match ? (1 / match.bookmakers[0].markets[0].outcomes[0].price) * 100 : 50;
+        const oddsR = await fetch(`/odds-proxy/v4/sports/baseball_mlb/odds/?apiKey=${ODDS_KEY}&regions=us&markets=h2h`);
+        const oddsD = await oddsR.json();
+        const gameOdds = oddsD.find(o => o.home_team.includes(selectedGame.teams.home.team.name));
+        const bookProb = gameOdds ? (1 / gameOdds.bookmakers[0].markets[0].outcomes[0].price) * 100 : 50;
 
-    render(wp, book);
-  } catch(e) { console.log("Sync Error", e); }
+        updateUI(wp, bookProb);
+    } catch (e) { console.error(e); }
 }
 
-function render(wp, book) {
-  const gap = wp - book;
-  document.getElementById('v-mlb').textContent = wp.toFixed(1) + '%';
-  document.getElementById('v-book').textContent = book.toFixed(1) + '%';
-  document.getElementById('v-gap').textContent = gap.toFixed(1) + '%';
-  document.getElementById('v-gap').style.color = gap >= 0 ? 'var(--green)' : 'var(--red)';
+function updateUI(mlb, book) {
+    const gap = mlb - book;
+    document.getElementById('n-mlb').textContent = mlb.toFixed(1) + '%';
+    document.getElementById('n-book').textContent = book.toFixed(1) + '%';
+    document.getElementById('n-gap').textContent = gap.toFixed(1) + '%';
 
-  const b = document.getElementById('box');
-  const a = document.getElementById('act');
-  const w = document.getElementById('why');
+    const box = document.getElementById('sig-box');
+    const act = document.getElementById('sig-action');
+    const why = document.getElementById('sig-why');
 
-  if(gap >= 8) {
-    b.className = 'sig-box buy'; a.textContent = 'STRIKE NOW'; w.textContent = 'MODEL PEAK GAP';
-    sfx(880, 0.4); sfx(1100, 0.2); 
-  } else if(gap >= 5) {
-    b.className = 'sig-box warn'; a.textContent = 'EDGE FORMING'; w.textContent = 'MARKET LAG DETECTED';
-    sfx(440, 0.1); 
-  } else {
-    b.className = 'sig-box idle'; a.textContent = 'MONITORING'; w.textContent = 'LINES ARE FLAT';
-  }
+    if (gap >= THRESHOLD) {
+        box.className = 'sig-box buy'; act.textContent = 'STRIKE NOW';
+        why.textContent = 'MASSIVE MODEL GAP';
+        playTone(880, 0.5); // High alert
+    } else if (gap >= WARN_LEVEL) {
+        box.className = 'sig-box warn'; act.textContent = 'EDGE FORMING';
+        why.textContent = 'MARKET LAG DETECTED';
+        playTone(440, 0.1); // Short warning
+    } else {
+        box.className = 'sig-box idle'; act.textContent = 'MONITORING';
+        why.textContent = 'PRICES FULLY ALIGNED';
+    }
 }
 
-function back() {
-  clearInterval(poller);
-  document.getElementById('watch').classList.remove('active');
-  document.getElementById('list').classList.add('active');
+function goBack() {
+    clearInterval(pollInterval);
+    document.getElementById('screen-watch').classList.remove('active');
+    document.getElementById('screen-pick').classList.add('active');
 }
 
-load();
+fetchSchedule();
 </script>
 </body>
 </html>
