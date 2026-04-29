@@ -27,3 +27,156 @@
 </div>
 
 <table id="main-table">
+    <thead>
+        <tr>
+            <th width="20%">CITY/INN</th>
+            <th width="10%">SCORE</th>
+            <th width="12%">BOOK %</th>
+            <th width="12%">MLB %</th>
+            <th width="12%">GAP %</th>
+            <th width="12%">HR ODDS</th>
+            <th width="12%">MODEL</th>
+        </tr>
+    </thead>
+    <tbody id="grid-body"></tbody>
+</table>
+
+<audio id="alarm-sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+
+<script>
+const ODDS_KEY = '75fbd1947a7dec109b7573b6951a65aa';
+const THRESHOLD = 8.0;
+
+// Your Cloudflare Worker proxy
+const PROXY_BASE = "https://green-hat-0844.nomarbosox5.workers.dev/?url=";
+
+function proxied(url) {
+    return PROXY_BASE + encodeURIComponent(url);
+}
+
+function amToProb(odds) {
+    const n = parseFloat(odds);
+    if (isNaN(n) || n === 0) return 0;
+    return n < 0 ? (Math.abs(n) / (Math.abs(n) + 100)) * 100 : (100 / (n + 100)) * 100;
+}
+
+function probToAm(prob) {
+    if (prob >= 100) return "-9999";
+    if (prob <= 0) return "+9999";
+    if (prob >= 50) return Math.round(-100 * (prob / (100 - prob)));
+    return "+" + Math.round(100 * ((100 - prob) / prob));
+}
+
+async function safeJson(res) {
+    if (!res || !res.ok) return null;
+    try { return await res.json(); }
+    catch { return null; }
+}
+
+async function update() {
+    const apiStatus = document.getElementById('api-status');
+    const clock = document.getElementById('clock');
+    apiStatus.innerText = "API: PULLING...";
+
+    try {
+        const oddsUrl = proxied(`https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?regions=us&apiKey=${ODDS_KEY}&bookmakers=hardrock&oddsFormat=american`);
+        const schedUrl = proxied('https://statsapi.mlb.com/api/v1/schedule?sportId=1&hydrate=linescore');
+
+        const [oddsRes, mlbRes] = await Promise.all([fetch(oddsUrl), fetch(schedUrl)]);
+        const oddsData = await safeJson(oddsRes);
+        const mlbData = await safeJson(mlbRes);
+
+        if (!oddsData || !Array.isArray(oddsData) || !mlbData?.dates?.[0]) {
+            throw new Error("Bad API payload");
+        }
+
+        const games = mlbData.dates[0].games || [];
+        const tableRows = [];
+        let alarmTriggered = false;
+
+        const oddsByHome = {};
+        for (const o of oddsData) {
+            if (o?.home_team) oddsByHome[o.home_team] = o;
+        }
+
+        for (const game of games) {
+            const homeTeam = game?.teams?.home?.team?.name;
+            const awayTeam = game?.teams?.away?.team?.name;
+            if (!homeTeam || !awayTeam) continue;
+
+            const liveUrl = proxied(`https://statsapi.mlb.com/api/v1.1/game/${game.gamePk}/feed/live`);
+            const liveData = await safeJson(await fetch(liveUrl));
+
+            const homeWP = liveData?.liveData?.plays?.currentPlay?.about?.homeWinProbability;
+            if (typeof homeWP !== "number") continue;
+
+            const oddsMatch = oddsByHome[homeTeam];
+            const hrOutcomes = oddsMatch?.bookmakers?.[0]?.markets?.[0]?.outcomes;
+            if (!Array.isArray(hrOutcomes)) continue;
+
+            const hrHome = hrOutcomes.find(o => o?.name === homeTeam);
+            if (!hrHome) continue;
+
+            const amOdds = parseFloat(hrHome.price_american ?? hrHome.price);
+            if (isNaN(amOdds)) continue;
+
+            const bookProb = amToProb(amOdds);
+            const gap = homeWP - bookProb;
+
+            if (gap >= THRESHOLD) alarmTriggered = true;
+
+            const inn = game.linescore?.currentInningOrdinal
+                ? (game.linescore.inningHalf === "top" ? "▲" : "▼") + game.linescore.currentInningOrdinal
+                : "PRE";
+
+            const score = `${game.teams.away.score ?? 0}-${game.teams.home.score ?? 0}`;
+
+            tableRows.push({
+                city: homeTeam.split(" ").pop(),
+                inn,
+                score,
+                bookProb: bookProb.toFixed(1) + "%",
+                mlbWP: homeWP.toFixed(1) + "%",
+                gap: gap.toFixed(1) + "%",
+                gapVal: gap,
+                hrOdds: amOdds > 0 ? "+" + amOdds : amOdds,
+                modelOdds: probToAm(homeWP),
+                isLive: game.status?.abstractGameState === "Live"
+            });
+        }
+
+        tableRows.sort((a, b) => b.gapVal - a.gapVal);
+
+        const tbody = document.getElementById("grid-body");
+        tbody.innerHTML = tableRows.length
+            ? tableRows.map(r => `
+                <tr>
+                    <td class="${r.isLive ? 'live' : ''}">${r.city} <small>${r.inn}</small></td>
+                    <td>${r.score}</td>
+                    <td>${r.bookProb}</td>
+                    <td class="win-pct">${r.mlbWP}</td>
+                    <td class="${r.gapVal >= THRESHOLD ? 'gap-high' : ''}">${r.gap}</td>
+                    <td class="odd-val">${r.hrOdds}</td>
+                    <td>${r.modelOdds}</td>
+                </tr>
+            `).join("")
+            : `<tr><td colspan="7" style="text-align:center; padding:20px; color:#555;">NO LIVE DATA AVAILABLE</td></tr>`;
+
+        if (alarmTriggered) {
+            document.getElementById("alarm-sound").play().catch(() => {});
+        }
+
+        apiStatus.innerText = "API: SLEEP";
+        clock.innerText = new Date().toLocaleTimeString();
+
+    } catch (err) {
+        console.error(err);
+        apiStatus.innerText = "API: ERROR";
+    }
+}
+
+update();
+setInterval(update, 60000);
+</script>
+</body>
+</html>
