@@ -16,20 +16,20 @@
         .screen { display: none; height: 100vh; flex-direction: column; }
         .screen.active { display: flex; }
         .hdr { background: var(--surface); border-bottom: 1px solid var(--border); padding: 15px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
-        .hdr-name { font-size: 20px; font-weight: 800; letter-spacing: -.03em; color: var(--green); }
+        .hdr-name { font-size: 20px; font-weight: 800; color: var(--green); }
         .city-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; overflow-y: auto; }
         .city-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 15px; cursor: pointer; transition: 0.2s; }
         .city-card.state-live { border-color: var(--green); background: rgba(0, 230, 118, 0.1); }
-        .sig-box { border-radius: 16px; padding: 25px; margin: 15px; text-align: center; transition: 0.3s; }
+        .sig-box { border-radius: 16px; padding: 25px; margin: 15px; text-align: center; }
         .sig-box.idle { background: var(--surface); border: 1px solid var(--border); }
         .sig-box.buy { background: #2e0008; border: 2px solid var(--red); animation: flash 0.5s infinite; }
-        .sig-action { font-size: 28px; font-weight: 800; margin: 6px 0; }
-        @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .sig-action { font-size: 24px; font-weight: 800; margin: 5px 0; }
+        @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
         .nums-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 0 15px; }
-        .num-card { background: var(--surface); padding: 15px 10px; border-radius: 12px; border: 1px solid var(--border); text-align: center; }
+        .num-card { background: var(--surface); padding: 15px; border-radius: 12px; border: 1px solid var(--border); text-align: center; }
         .nv { font-family: var(--mono); font-size: 20px; font-weight: 700; }
-        .nl { font-size: 9px; color: var(--sub); margin-top: 4px; text-transform: uppercase; font-weight: 800; }
-        .back-btn { border: none; background: none; color: var(--blue); font-weight: 800; font-size: 15px; cursor: pointer; }
+        .nl { font-size: 9px; color: var(--sub); margin-top: 4px; text-transform: uppercase; }
+        .back-btn { border: none; background: none; color: var(--blue); font-weight: 800; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -42,12 +42,12 @@
 <div class="screen" id="screen-watch">
     <div class="hdr">
         <button class="back-btn" onclick="goBack()">‹ TEAMS</button>
-        <div class="hdr-name" id="matchup-header">LIVE FEED</div>
+        <div id="matchup-header" style="font-weight: 700;">LIVE FEED</div>
     </div>
     <div class="sig-box idle" id="sig-box">
-        <div style="font-size: 11px; font-weight: 800; color: var(--sub); letter-spacing: 1px;">ENGINE STATUS</div>
+        <div style="font-size: 10px; color: var(--sub); font-weight: 800;">STATUS</div>
         <div id="sig-action" class="sig-action">SCANNING</div>
-        <div id="sig-details" style="font-size: 12px; color: var(--sub);">Awaiting Gumbo data...</div>
+        <div id="sig-details" style="font-size: 12px; color: var(--sub);">Connecting to MLB Gumbo...</div>
     </div>
     <div class="nums-row">
         <div class="num-card"><div class="nv" id="n-mlb">--</div><div class="nl">MLB WP%</div></div>
@@ -58,25 +58,15 @@
 
 <script>
     const ODDS_KEY = '75fbd1947a7dec109b7573b6951a65aa';[cite: 5]
-    const PROXY = 'https://corsproxy.io/?'; 
-    const THRESHOLD = 8.0;
+    const PROXY = 'https://corsproxy.io/?'; // Essential for GitHub Pages[cite: 5, 6]
     let selectedGame = null;
     let engineInterval = null;
-    let lastKnownWP = null;
-
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    function triggerAlarm(isCritical) {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.frequency.value = isCritical ? 880 : 440;[cite: 3]
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        osc.start(); osc.stop(audioCtx.currentTime + (isCritical ? 0.4 : 0.1));
-    }
+    let lastWP = null; // Sticky WP logic[cite: 3]
 
     async function fetchSchedule() {
         try {
-            const r = await fetch(PROXY + encodeURIComponent('https://statsapi.mlb.com/api/v1/schedule?sportId=1'));[cite: 5]
+            const url = 'https://statsapi.mlb.com/api/v1/schedule?sportId=1';
+            const r = await fetch(PROXY + encodeURIComponent(url));[cite: 5]
             const d = await r.json();
             const games = d.dates[0]?.games || [];
             const grid = document.getElementById('city-grid');
@@ -85,66 +75,60 @@
                 const card = document.createElement('div');
                 card.className = `city-card ${g.status.detailedState === 'In Progress' ? 'state-live' : ''}`;
                 card.innerHTML = `<b>${g.teams.home.team.name}</b><br><small>${g.teams.away.team.abbreviation} @ ${g.teams.home.team.abbreviation}</small>`;
-                card.onclick = () => {
-                    selectedGame = g;
-                    document.getElementById('matchup-header').textContent = `${g.teams.away.team.abbreviation} @ ${g.teams.home.team.abbreviation}`;
-                    document.getElementById('screen-pick').classList.remove('active');
-                    document.getElementById('screen-watch').classList.add('active');
-                    runEngine();
-                    engineInterval = setInterval(runEngine, 2000); 
-                };
+                card.onclick = () => startEngine(g);
                 grid.appendChild(card);
             });
-        } catch (e) { document.getElementById('city-grid').innerText = "CORS/Load Error. Refresh."; }
+        } catch (e) { document.getElementById('city-grid').innerText = "Schedule Load Error."; }
     }
 
-    async function runEngine() {
+    function startEngine(g) {
+        selectedGame = g;
+        document.getElementById('screen-pick').classList.remove('active');
+        document.getElementById('screen-watch').classList.add('active');
+        document.getElementById('matchup-header').innerText = `${g.teams.away.team.abbreviation} @ ${g.teams.home.team.abbreviation}`;
+        engineInterval = setInterval(runLoop, 3000); // 3-second refresh[cite: 3]
+        runLoop();
+    }
+
+    async function runLoop() {
         if (!selectedGame) return;
         try {
-            // MLB Win Prob with Sticky Logic[cite: 3]
-            const mlbR = await fetch(PROXY + encodeURIComponent(`https://statsapi.mlb.com/api/v1.1/game/${selectedGame.gamePk}/feed/live`));[cite: 3, 5]
+            // MLB Live Feed (Gumbo)[cite: 3, 5]
+            const mlbUrl = `https://statsapi.mlb.com/api/v1.1/game/${selectedGame.gamePk}/feed/live`;
+            const mlbR = await fetch(PROXY + encodeURIComponent(mlbUrl));[cite: 5]
             const mlbD = await mlbR.json();
-            let wp = mlbD.liveData?.plays?.currentPlay?.about?.homeWinProbability;
             
-            if (wp === undefined || wp === null) {
+            // Sticky Win Probability logic[cite: 3]
+            let wp = mlbD.liveData?.plays?.currentPlay?.about?.homeWinProbability;
+            if (wp == null) {
                 const all = mlbD.liveData?.plays?.allPlays || [];
-                wp = all.length > 0 ? all[all.length - 1]?.about?.homeWinProbability : null;[cite: 3]
+                wp = all.length > 0 ? all[all.length - 1]?.about?.homeWinProbability : lastWP;[cite: 3]
             }
-
-            if (wp !== null) {
-                lastKnownWP = wp;
-                document.getElementById('n-mlb').innerText = wp.toFixed(1) + '%';
-            }
+            if (wp != null) { lastWP = wp; document.getElementById('n-mlb').innerText = wp.toFixed(1) + '%'; }
 
             // Market Odds[cite: 5]
-            const oddsR = await fetch(PROXY + encodeURIComponent(`https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${ODDS_KEY}&regions=us&markets=h2h`));[cite: 5]
+            const oddsUrl = `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${ODDS_KEY}&regions=us&markets=h2h`;
+            const oddsR = await fetch(PROXY + encodeURIComponent(oddsUrl));[cite: 5]
             const oddsD = await oddsR.json();
             const gameOdds = oddsD.find(o => o.home_team.includes(selectedGame.teams.home.team.name));
-            
-            let bookProb = 0;
-            if (gameOdds?.bookmakers[0]) {
+
+            if (gameOdds?.bookmakers[0] && lastWP) {
                 const price = gameOdds.bookmakers[0].markets[0].outcomes.find(out => out.name === selectedGame.teams.home.team.name)?.price;
-                if (price) bookProb = (1 / price) * 100;
-            }
+                const bookProb = (1 / price) * 100;
+                const gap = lastWP - bookProb;
 
-            if (bookProb > 0) document.getElementById('n-book').innerText = bookProb.toFixed(1) + '%';
+                document.getElementById('n-book').innerText = bookProb.toFixed(1) + '%';
+                document.getElementById('n-gap').innerText = (gap >= 0 ? '+' : '') + gap.toFixed(1) + '%';
 
-            if (lastKnownWP && bookProb > 0) {
-                const gap = lastKnownWP - bookProb;
-                const gapEl = document.getElementById('n-gap');
-                gapEl.innerText = (gap >= 0 ? '+' : '') + gap.toFixed(1) + '%';
-                gapEl.style.color = gap >= THRESHOLD ? 'var(--green)' : 'var(--text)';
-
-                if (gap >= THRESHOLD) {[cite: 3]
+                if (gap >= 8.0) {[cite: 3]
                     document.getElementById('sig-box').className = 'sig-box buy';
                     document.getElementById('sig-action').innerText = '🔥 STRIKE NOW';
-                    triggerAlarm(true);
                 } else {
                     document.getElementById('sig-box').className = 'sig-box idle';
                     document.getElementById('sig-action').innerText = 'MONITORING';
                 }
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error("Loop Error:", e); }
     }
 
     function goBack() {
