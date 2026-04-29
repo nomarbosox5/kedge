@@ -1,210 +1,196 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Gap King Pro</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-:root{
-  --bg:#0f1120;--surface:#1a1d2e;--border:#2d324d;--text:#fff;--sub:#94a3b8;--muted:#64748b;
-  --green:#00e676;--gl:rgba(0,230,118,0.1);--gb:#00e676;
-  --red:#ff1744;--rl:rgba(255,23,68,0.1);--rb:#ff1744;
-  --blue:#2979ff;--amber:#ffea00;--sans:'Inter',sans-serif;--mono:'JetBrains Mono',monospace
-}
-body{font-family:var(--sans);background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
-.screen{display:none;height:100vh;flex-direction:column}
-.screen.active{display:flex}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Gap King Pro</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+        
+        :root {
+            --bg: #0f1120; --surface: #1a1d2e; --border: #2d324d; --text: #fff; --sub: #94a3b8;
+            --green: #00e676; --red: #ff1744; --amber: #ffea00; --blue: #2979ff;
+            --sans: 'Inter', sans-serif; --mono: 'JetBrains Mono', monospace;
+        }
 
-/* HEADER */
-.hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:15px;flex-shrink:0;display:flex;justify-content:space-between;align-items:center}
-.hdr-name{font-size:20px;font-weight:800;letter-spacing:-.03em;color:var(--green)}
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: var(--sans); background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
 
-/* CITY GRID */
-.city-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:15px;overflow-y:auto}
-.city-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:15px;cursor:pointer;transition:0.2s}
-.city-card.state-live{border-color:var(--green);background:var(--gl)}
-.city-card:active{transform:scale(0.98)}
+        /* SCREENS */
+        .screen { display: none; height: 100vh; flex-direction: column; }
+        .screen.active { display: flex; }
 
-/* WATCH SCREEN */
-.sig-box{border-radius:16px;padding:25px;margin:15px;text-align:center;transition:all 0.3s}
-.sig-box.idle{background:var(--surface);border:1px solid var(--border)}
-.sig-box.warn{background:#2e2600;border:2px solid var(--amber);animation:pulse 1s infinite}
-.sig-box.buy{background:#2e0008;border:2px solid var(--red);animation:flash 0.5s infinite}
+        /* HEADER */
+        .hdr { background: var(--surface); border-bottom: 1px solid var(--border); padding: 15px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
+        .hdr-name { font-size: 20px; font-weight: 800; letter-spacing: -.03em; color: var(--green); }
 
-.sig-status{font-size:11px;font-weight:800;color:var(--sub);letter-spacing:1.5px;text-transform:uppercase}
-.sig-action{font-size:28px;font-weight:800;margin:6px 0}
-.sig-why{font-size:14px;font-weight:700;text-transform:uppercase;color:var(--amber)}
+        /* GRID */
+        .city-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; overflow-y: auto; }
+        .city-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 15px; cursor: pointer; transition: 0.2s; }
+        .city-card.state-live { border-color: var(--green); background: rgba(0, 230, 118, 0.05); }
+        .city-card:active { transform: scale(0.98); }
 
-@keyframes flash{0%{opacity:1}50%{opacity:0.7}100%{opacity:1}}
-@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.03)}100%{transform:scale(1)}}
+        /* SIGNALS & ALARMS */
+        .sig-box { border-radius: 16px; padding: 25px; margin: 15px; text-align: center; transition: all 0.3s; }
+        .sig-box.idle { background: var(--surface); border: 1px solid var(--border); }
+        .sig-box.warn { background: #2e2600; border: 2px solid var(--amber); animation: pulse 1s infinite; }
+        .sig-box.buy { background: #2e0008; border: 2px solid var(--red); animation: flash 0.5s infinite; }
+        
+        .sig-action { font-size: 28px; font-weight: 800; margin: 6px 0; }
+        .sig-why { font-size: 14px; font-weight: 700; color: var(--sub); text-transform: uppercase; }
 
-.nums-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:0 15px}
-.num-card{background:var(--surface);padding:18px 10px;border-radius:12px;border:1px solid var(--border);text-align:center}
-.nv{font-family:var(--mono);font-size:22px;font-weight:700}
-.nl{font-size:10px;color:var(--sub);margin-top:4px;text-transform:uppercase;font-weight:600}
+        @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
 
-/* SYNC BUTTON */
-.ctrls{padding:20px;display:flex;justify-content:center}
-.sync-btn{background:var(--blue);color:white;border:none;padding:14px 28px;border-radius:30px;font-weight:800;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:10px;box-shadow:0 4px 15px rgba(41,121,255,0.3)}
-.sync-btn:disabled{opacity:0.5;filter:grayscale(1)}
-</style>
+        /* STATS */
+        .nums-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 0 15px; }
+        .num-card { background: var(--surface); padding: 15px 10px; border-radius: 12px; border: 1px solid var(--border); text-align: center; }
+        .nv { font-family: var(--mono); font-size: 20px; font-weight: 700; }
+        .nl { font-size: 9px; color: var(--sub); margin-top: 4px; text-transform: uppercase; font-weight: 800; }
+
+        .back-btn { border: none; background: none; color: var(--blue); font-weight: 800; font-size: 15px; cursor: pointer; }
+    </style>
 </head>
 <body>
 
+<!-- LANDING PAGE -->
 <div class="screen active" id="screen-pick">
-  <div class="hdr"><div class="hdr-name">GAP KING PRO</div></div>
-  <div class="city-grid" id="city-grid">Loading Games...</div>
+    <div class="hdr"><div class="hdr-name">GAP KING PRO</div></div>
+    <div class="city-grid" id="city-grid">Loading Games...</div>
 </div>
 
+<!-- WATCH SCREEN -->
 <div class="screen" id="screen-watch">
-  <div class="hdr">
-    <button onclick="goBack()" style="border:none;background:none;color:var(--blue);font-weight:800;font-size:15px">‹ TEAMS</button>
-    <div class="hdr-name" id="matchup-header">LIVE FEED</div>
-  </div>
-  
-  <div class="sig-box idle" id="sig-box">
-    <div class="sig-status">ENGINE STATUS</div>
-    <div id="sig-action">SCANNING</div>
-    <div class="sig-why" id="sig-why">READY FOR DATA</div>
-  </div>
+    <div class="hdr">
+        <button class="back-btn" onclick="goBack()">‹ TEAMS</button>
+        <div class="hdr-name" id="matchup-header">LIVE FEED</div>
+    </div>
+    
+    <div class="sig-box idle" id="sig-box">
+        <div class="sig-why">ENGINE STATUS</div>
+        <div id="sig-action" class="sig-action">SCANNING</div>
+        <div id="sig-details" style="font-size: 12px; margin-top: 5px; color: var(--sub);">Awaiting Gumbo data...</div>
+    </div>
 
-  <div class="nums-row">
-    <div class="num-card"><div class="nv" id="n-mlb">--</div><div class="nl">MLB WP%</div></div>
-    <div class="num-card"><div class="nv" id="n-book">--</div><div class="nl">BOOK %</div></div>
-    <div class="num-card"><div class="nv" id="n-gap" style="color:var(--green)">--</div><div class="nl">GAP</div></div>
-  </div>
-
-  <div class="ctrls">
-    <button class="sync-btn" id="sync-btn" onclick="manualSync()">
-      <span id="sync-icon">🔄</span> SYNC LIVE ODDS
-    </button>
-  </div>
+    <div class="nums-row">
+        <div class="num-card"><div class="nv" id="n-mlb">--</div><div class="nl">MLB WP%</div></div>
+        <div class="num-card"><div class="nv" id="n-book">--</div><div class="nl">BOOK %</div></div>
+        <div class="num-card"><div class="nv" id="n-gap">--</div><div class="nl">GAP</div></div>
+    </div>
 </div>
 
 <script>
-const ODDS_KEY = '75fbd1947a7dec109b7573b6951a65aa';
-const THRESHOLD = 8.0;
-const WARN_LEVEL = 5.0;
-let selectedGame = null;
-let pollInterval = null;
+    const ODDS_KEY = '75fbd1947a7dec109b7573b6951a65aa'; //[cite: 5]
+    const THRESHOLD = 8.0; 
+    let selectedGame = null;
+    let engineInterval = null;
+    let lastKnownWP = null;
 
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function sfx(freq, duration) {
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-    osc.start();
-    osc.stop(audioCtx.currentTime + duration);
-}
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-async function fetchSchedule() {
-    try {
-        const r = await fetch('/mlb-proxy/api/v1/schedule?sportId=1');
-        const d = await r.json();
-        const games = d.dates[0]?.games || [];
-        const grid = document.getElementById('city-grid');
-        grid.innerHTML = '';
-        games.forEach(g => {
-            const card = document.createElement('div');
-            const isLive = g.status.detailedState === 'In Progress';
-            card.className = `city-card ${isLive ? 'state-live' : ''}`;
-            card.innerHTML = `<b>${g.teams.home.team.name.split(' ').pop()}</b><br><small>${g.teams.away.team.abbreviation} @ ${g.teams.home.team.abbreviation}</small>`;
-            card.onclick = () => {
-                selectedGame = g;
-                // FIX: Proper header naming
-                document.getElementById('matchup-header').textContent = `${g.teams.away.team.abbreviation} @ ${g.teams.home.team.abbreviation}`;
-                document.getElementById('screen-pick').classList.remove('active');
-                document.getElementById('screen-watch').classList.add('active');
-                poll(); 
-                pollInterval = setInterval(poll, 60000);
-            };
-            grid.appendChild(card);
-        });
-    } catch (e) { console.error("Schedule Error", e); }
-}
-
-async function manualSync() {
-    const btn = document.getElementById('sync-btn');
-    const icon = document.getElementById('sync-icon');
-    btn.disabled = true; icon.textContent = '⏳';
-    await poll();
-    setTimeout(() => { btn.disabled = false; icon.textContent = '🔄'; }, 2000);
-}
-
-async function poll() {
-    if(!selectedGame) return;
-    try {
-        const mlbR = await fetch(`/mlb-proxy/api/v1.1/game/${selectedGame.gamePk}/feed/live`);
-        const mlbD = await mlbR.json();
-        
-        // FIX: Only use valid win probability. NO MORE 50% GHOSTING.
-        const wp = mlbD.liveData?.plays?.currentPlay?.about?.homeWinProbability;
-
-        if (wp === undefined || wp === null) {
-            document.getElementById('sig-action').textContent = 'AWAITING DATA';
-            document.getElementById('sig-why').textContent = 'GAME START PENDING';
-            document.getElementById('n-mlb').textContent = '--';
-            document.getElementById('n-book').textContent = '--';
-            document.getElementById('n-gap').textContent = '--';
-            return;
-        }
-
-        const oddsR = await fetch(`/odds-proxy/v4/sports/baseball_mlb/odds/?apiKey=${ODDS_KEY}&regions=us&markets=h2h`);
-        const oddsD = await oddsR.json();
-        
-        // FIX: Match by team abbreviation or name to ensure data hits
-        const homeAbbr = selectedGame.teams.home.team.abbreviation;
-        const gameOdds = oddsD.find(o => o.home_team.includes(selectedGame.teams.home.team.name) || o.home_team.includes(homeAbbr));
-        
-        let bookProb = 0;
-        if (gameOdds && gameOdds.bookmakers[0]) {
-            const outcome = gameOdds.bookmakers[0].markets[0].outcomes.find(out => 
-                out.name.includes(selectedGame.teams.home.team.name) || out.name.includes(homeAbbr)
-            );
-            if (outcome) bookProb = (1 / outcome.price) * 100;
-        }
-
-        if (bookProb > 0) updateUI(wp, bookProb);
-        
-    } catch (e) { console.error("Poll Error", e); }
-}
-
-function updateUI(mlb, book) {
-    const gap = mlb - book;
-    document.getElementById('n-mlb').textContent = mlb.toFixed(1) + '%';
-    document.getElementById('n-book').textContent = book.toFixed(1) + '%';
-    document.getElementById('n-gap').textContent = gap.toFixed(1) + '%';
-    document.getElementById('n-gap').style.color = gap >= 0 ? 'var(--green)' : 'var(--red)';
-
-    const box = document.getElementById('sig-box');
-    const act = document.getElementById('sig-action');
-    const why = document.getElementById('sig-why');
-
-    if (gap >= THRESHOLD) {
-        box.className = 'sig-box buy'; act.textContent = 'STRIKE NOW';
-        why.textContent = 'MODEL PEAK GAP';
-        sfx(880, 0.4);
-    } else if (gap >= WARN_LEVEL) {
-        box.className = 'sig-box warn'; act.textContent = 'EDGE FORMING';
-        why.textContent = 'MARKET LAG DETECTED';
-        sfx(440, 0.1);
-    } else {
-        box.className = 'sig-box idle'; act.textContent = 'MONITORING';
-        why.textContent = 'LINES ARE FLAT';
+    function triggerAlarm(isCritical) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.frequency.value = isCritical ? 880 : 440; // High pitch for offensive play[cite: 3]
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        osc.start(); osc.stop(audioCtx.currentTime + (isCritical ? 0.4 : 0.1));
     }
-}
 
-function goBack() {
-    clearInterval(pollInterval);
-    document.getElementById('screen-watch').classList.remove('active');
-    document.getElementById('screen-pick').classList.add('active');
-}
+    async function fetchSchedule() {
+        try {
+            const r = await fetch('https://statsapi.mlb.com/api/v1/schedule?sportId=1');
+            const d = await r.json();
+            const games = d.dates[0]?.games || [];
+            const grid = document.getElementById('city-grid');
+            grid.innerHTML = '';
+            
+            games.forEach(g => {
+                const isLive = g.status.detailedState === 'In Progress';
+                const card = document.createElement('div');
+                card.className = `city-card ${isLive ? 'state-live' : ''}`;
+                card.innerHTML = `<b>${g.teams.home.team.name.split(' ').pop()}</b><br><small>${g.teams.away.team.abbreviation} @ ${g.teams.home.team.abbreviation}</small>`;
+                card.onclick = () => startWatch(g);
+                grid.appendChild(card);
+            });
+        } catch (e) { console.error("Schedule Error", e); }
+    }
 
-fetchSchedule();
+    function startWatch(game) {
+        selectedGame = game;
+        document.getElementById('matchup-header').textContent = `${game.teams.away.team.abbreviation} @ ${game.teams.home.team.abbreviation}`;
+        document.getElementById('screen-pick').classList.remove('active');
+        document.getElementById('screen-watch').classList.add('active');
+        
+        // Fast Engine: Poll WP every 2s, Odds every 30s
+        runEngine();
+        engineInterval = setInterval(runEngine, 2000); 
+    }
+
+    async function runEngine() {
+        if (!selectedGame) return;
+        
+        try {
+            // 1. GUMBO FEED (MLB WP)[cite: 3]
+            const mlbR = await fetch(`https://statsapi.mlb.com/api/v1.1/game/${selectedGame.gamePk}/feed/live`);
+            const mlbD = await mlbR.json();
+            
+            // Sticky Logic: Fallback to last play if currentPlay is null[cite: 3]
+            let wp = mlbD.liveData?.plays?.currentPlay?.about?.homeWinProbability;
+            if (wp === undefined || wp === null) {
+                const all = mlbD.liveData?.plays?.allPlays || [];
+                wp = all.length > 0 ? all[all.length - 1]?.about?.homeWinProbability : null;
+            }
+
+            if (wp !== null) {
+                lastKnownWP = wp; // Assume monitoring home team for simple gap math
+                document.getElementById('n-mlb').textContent = wp.toFixed(1) + '%';
+            }
+
+            // 2. ODDS API[cite: 5]
+            const oddsR = await fetch(`https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${ODDS_KEY}&regions=us&markets=h2h`);
+            const oddsD = await oddsR.json();
+            const gameOdds = oddsD.find(o => o.home_team.includes(selectedGame.teams.home.team.name));
+            
+            let bookProb = 0;
+            if (gameOdds?.bookmakers[0]) {
+                const outcome = gameOdds.bookmakers[0].markets[0].outcomes.find(out => out.name === selectedGame.teams.home.team.name);
+                if (outcome) bookProb = (1 / outcome.price) * 100;
+            }
+
+            if (bookProb > 0) {
+                document.getElementById('n-book').textContent = bookProb.toFixed(1) + '%';
+                if (lastKnownWP) updateUI(lastKnownWP, bookProb);
+            }
+        } catch (e) { console.error("Engine Sync Error", e); }
+    }
+
+    function updateUI(mlb, book) {
+        const gap = mlb - book;
+        document.getElementById('n-gap').textContent = (gap >= 0 ? '+' : '') + gap.toFixed(1) + '%';
+        document.getElementById('n-gap').style.color = gap >= 0 ? 'var(--green)' : 'var(--red)';
+
+        const box = document.getElementById('sig-box');
+        const act = document.getElementById('sig-action');
+
+        if (gap >= THRESHOLD) {
+            box.className = 'sig-box buy'; act.textContent = '🔥 STRIKE NOW';
+            triggerAlarm(true); // Offensive Play Alarm[cite: 3]
+        } else if (gap >= 5.0) {
+            box.className = 'sig-box warn'; act.textContent = 'EDGE FORMING';
+            triggerAlarm(false);
+        } else {
+            box.className = 'sig-box idle'; act.textContent = 'MONITORING';
+        }
+    }
+
+    function goBack() {
+        clearInterval(engineInterval);
+        document.getElementById('screen-watch').classList.remove('active');
+        document.getElementById('screen-pick').classList.add('active');
+    }
+
+    fetchSchedule();
 </script>
 </body>
 </html>
