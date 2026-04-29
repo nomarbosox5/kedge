@@ -8,59 +8,77 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  --bg:#f0f2f7;--surface:#fff;--border:#dde1ec;--text:#0f1120;--sub:#5a6180;--muted:#9096b0;
-  --green:#00a85a;--gl:#e6f7ef;--gb:#7dd4aa;
-  --red:#e8203a;--rl:#fef0f2;--rb:#f5aab5;
-  --blue:#2563eb;--sans:'Inter',sans-serif;--mono:'JetBrains Mono',monospace
+  --bg:#0f1120;--surface:#1a1d2e;--border:#2d324d;--text:#fff;--sub:#94a3b8;--muted:#64748b;
+  --green:#00e676;--gl:rgba(0,230,118,0.1);--gb:#00e676;
+  --red:#ff1744;--rl:rgba(255,23,68,0.1);--rb:#ff1744;
+  --blue:#2979ff;--amber:#ffea00;--sans:'Inter',sans-serif;--mono:'JetBrains Mono',monospace
 }
 body{font-family:var(--sans);background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
 .screen{display:none;height:100vh;flex-direction:column}
 .screen.active{display:flex}
 
 /* HEADER */
-.hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:15px;flex-shrink:0}
-.hdr-name{font-size:22px;font-weight:800;letter-spacing:-.03em}
+.hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:15px;flex-shrink:0;display:flex;justify-content:space-between;align-items:center}
+.hdr-name{font-size:22px;font-weight:800;letter-spacing:-.03em;color:var(--green)}
 
 /* CITY GRID */
-.city-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px;overflow-y:auto}
-.city-card{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:12px;cursor:pointer}
-.city-card.state-live{border-color:var(--gb);background:var(--gl)}
+.city-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:15px;overflow-y:auto}
+.city-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:15px;cursor:pointer;transition:0.2s}
+.city-card.state-live{border-color:var(--green);background:var(--gl)}
+.city-card:active{transform:scale(0.98)}
 
 /* WATCH SCREEN */
-.sig-box{border-radius:14px;padding:20px;margin:10px;text-align:center;transition:all 0.3s}
-.sig-box.idle{background:var(--surface);border:1.5px solid var(--border)}
-.sig-box.warn{background:#fffbeb;border:2px solid #fcd34d;animation:pulse 1s infinite}
-.sig-box.buy{background:var(--rl);border:2px solid var(--rb);animation:flash 0.5s infinite}
+.sig-box{border-radius:16px;padding:25px;margin:15px;text-align:center;transition:all 0.3s}
+.sig-box.idle{background:var(--surface);border:1px solid var(--border)}
+.sig-box.warn{background:#2e2600;border:2px solid var(--amber);animation:pulse 1s infinite}
+.sig-box.buy{background:#2e0008;border:2px solid var(--red);animation:flash 0.5s infinite}
 
-.sig-why{font-size:14px;font-weight:700;text-transform:uppercase;margin-top:8px;color:var(--sub)}
+.sig-status{font-size:11px;font-weight:800;color:var(--sub);letter-spacing:1.5px;text-transform:uppercase}
+.sig-action{font-size:28px;font-weight:800;margin:6px 0}
+.sig-why{font-size:14px;font-weight:700;text-transform:uppercase;color:var(--amber)}
 
 @keyframes flash{0%{opacity:1}50%{opacity:0.7}100%{opacity:1}}
-@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.03)}100%{transform:scale(1)}}
 
-.nums-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 10px}
-.num-card{background:var(--surface);padding:15px;border-radius:12px;border:1px solid var(--border);text-align:center}
-.nv{font-family:var(--mono);font-size:20px;font-weight:700}
-.nl{font-size:10px;color:var(--muted);text-transform:uppercase}
+.nums-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:0 15px}
+.num-card{background:var(--surface);padding:18px 10px;border-radius:12px;border:1px solid var(--border);text-align:center}
+.nv{font-family:var(--mono);font-size:22px;font-weight:700}
+.nl{font-size:10px;color:var(--sub);margin-top:4px;text-transform:uppercase;font-weight:600}
+
+/* SYNC BUTTON */
+.ctrls{padding:20px;display:flex;justify-content:center}
+.sync-btn{background:var(--blue);color:white;border:none;padding:14px 28px;border-radius:30px;font-weight:800;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:10px;box-shadow:0 4px 15px rgba(41,121,255,0.3)}
+.sync-btn:disabled{opacity:0.5;filter:grayscale(1)}
 </style>
 </head>
 <body>
 
 <div class="screen active" id="screen-pick">
-  <div class="hdr"><div class="hdr-name">👑 Gap King</div></div>
-  <div class="city-grid" id="city-grid">Loading...</div>
+  <div class="hdr"><div class="hdr-name">GAP KING PRO</div></div>
+  <div class="city-grid" id="city-grid">Loading Games...</div>
 </div>
 
 <div class="screen" id="screen-watch">
-  <div class="hdr"><button onclick="goBack()" style="border:none;background:none;color:var(--blue);font-weight:700">‹ Back</button></div>
-  <div class="sig-box idle" id="sig-box">
-    <div style="font-size:12px;font-weight:800;color:var(--muted)">LIVE SIGNAL</div>
-    <div id="sig-action" style="font-size:24px;font-weight:800">CONNECTING</div>
-    <div class="sig-why" id="sig-why">--- --- ---</div>
+  <div class="hdr">
+    <button onclick="goBack()" style="border:none;background:none;color:var(--blue);font-weight:800;font-size:15px">‹ TEAMS</button>
   </div>
+  
+  <div class="sig-box idle" id="sig-box">
+    <div class="sig-status">ENGINE STATUS</div>
+    <div id="sig-action">SCANNING</div>
+    <div class="sig-why" id="sig-why">READY FOR DATA</div>
+  </div>
+
   <div class="nums-row">
-    <div class="num-card"><div class="nv" id="n-mlb">0%</div><div class="nl">MLB</div></div>
-    <div class="num-card"><div class="nv" id="n-book">0%</div><div class="nl">BOOK</div></div>
-    <div class="num-card"><div class="nv" id="n-gap">0%</div><div class="nl">GAP</div></div>
+    <div class="num-card"><div class="nv" id="n-mlb">--</div><div class="nl">MLB WP%</div></div>
+    <div class="num-card"><div class="nv" id="n-book">--</div><div class="nl">BOOK %</div></div>
+    <div class="num-card"><div class="nv" id="n-gap" style="color:var(--green)">--</div><div class="nl">GAP</div></div>
+  </div>
+
+  <div class="ctrls">
+    <button class="sync-btn" id="sync-btn" onclick="manualSync()">
+      <span id="sync-icon">🔄</span> SYNC LIVE ODDS
+    </button>
   </div>
 </div>
 
@@ -71,9 +89,9 @@ const WARN_LEVEL = 5.0;
 let selectedGame = null;
 let pollInterval = null;
 
-// Audio Contexts
+// FX ENGINE
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function playTone(freq, duration) {
+function sfx(freq, duration) {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.connect(gain); gain.connect(audioCtx.destination);
@@ -84,24 +102,38 @@ function playTone(freq, duration) {
 }
 
 async function fetchSchedule() {
-    const r = await fetch('/mlb-proxy/api/v1/schedule?sportId=1');
-    const d = await r.json();
-    const games = d.dates[0]?.games || [];
-    const grid = document.getElementById('city-grid');
-    grid.innerHTML = '';
-    games.forEach(g => {
-        const card = document.createElement('div');
-        const isLive = g.status.detailedState === 'In Progress';
-        card.className = `city-card ${isLive ? 'state-live' : ''}`;
-        card.innerHTML = `<b>${g.teams.home.team.name.split(' ').pop()}</b><br><small>${g.teams.away.team.abbreviation} @ ${g.teams.home.team.abbreviation}</small>`;
-        card.onclick = () => {
-            selectedGame = g;
-            document.getElementById('screen-pick').classList.remove('active');
-            document.getElementById('screen-watch').classList.add('active');
-            poll(); pollInterval = setInterval(poll, 60000);
-        };
-        grid.appendChild(card);
-    });
+    try {
+        const r = await fetch('/mlb-proxy/api/v1/schedule?sportId=1');
+        const d = await r.json();
+        const games = d.dates[0]?.games || [];
+        const grid = document.getElementById('city-grid');
+        grid.innerHTML = '';
+        games.forEach(g => {
+            const card = document.createElement('div');
+            const isLive = g.status.detailedState === 'In Progress';
+            card.className = `city-card ${isLive ? 'state-live' : ''}`;
+            card.innerHTML = `<b>${g.teams.home.team.name.split(' ').pop()}</b><br><small>${g.teams.away.team.abbreviation} @ ${g.teams.home.team.abbreviation}</small>`;
+            card.onclick = () => {
+                selectedGame = g;
+                document.getElementById('screen-pick').classList.remove('active');
+                document.getElementById('screen-watch').classList.add('active');
+                poll(); pollInterval = setInterval(poll, 60000);
+            };
+            grid.appendChild(card);
+        });
+    } catch (e) { console.error("Schedule Error", e); }
+}
+
+async function manualSync() {
+    const btn = document.getElementById('sync-btn');
+    const icon = document.getElementById('sync-icon');
+    btn.disabled = true;
+    icon.textContent = '⏳';
+    await poll();
+    setTimeout(() => {
+        btn.disabled = false;
+        icon.textContent = '🔄';
+    }, 2000);
 }
 
 async function poll() {
@@ -117,7 +149,7 @@ async function poll() {
         const bookProb = gameOdds ? (1 / gameOdds.bookmakers[0].markets[0].outcomes[0].price) * 100 : 50;
 
         updateUI(wp, bookProb);
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Poll Error", e); }
 }
 
 function updateUI(mlb, book) {
@@ -125,6 +157,7 @@ function updateUI(mlb, book) {
     document.getElementById('n-mlb').textContent = mlb.toFixed(1) + '%';
     document.getElementById('n-book').textContent = book.toFixed(1) + '%';
     document.getElementById('n-gap').textContent = gap.toFixed(1) + '%';
+    document.getElementById('n-gap').style.color = gap >= 0 ? 'var(--green)' : 'var(--red)';
 
     const box = document.getElementById('sig-box');
     const act = document.getElementById('sig-action');
@@ -132,15 +165,15 @@ function updateUI(mlb, book) {
 
     if (gap >= THRESHOLD) {
         box.className = 'sig-box buy'; act.textContent = 'STRIKE NOW';
-        why.textContent = 'MASSIVE MODEL GAP';
-        playTone(880, 0.5); // High alert
+        why.textContent = 'MODEL PEAK GAP';
+        sfx(880, 0.4); setTimeout(() => sfx(1100, 0.2), 100); // Massive siren
     } else if (gap >= WARN_LEVEL) {
         box.className = 'sig-box warn'; act.textContent = 'EDGE FORMING';
         why.textContent = 'MARKET LAG DETECTED';
-        playTone(440, 0.1); // Short warning
+        sfx(440, 0.1); // Alert ping
     } else {
         box.className = 'sig-box idle'; act.textContent = 'MONITORING';
-        why.textContent = 'PRICES FULLY ALIGNED';
+        why.textContent = 'LINES ARE FLAT';
     }
 }
 
