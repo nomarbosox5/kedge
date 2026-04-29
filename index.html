@@ -1,128 +1,249 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Live Betting Edge Tracker</title>
   <style>
+    :root {
+      --bg: #0b0f14;
+      --card: #121821;
+      --muted: #94a3b8;
+      --text: #f8fafc;
+      --green: #00ff99;
+      --red: #ff4d4d;
+      --yellow: #ffd966;
+      --bar-bg: #1f2937;
+      --accent: #60a5fa;
+    }
     body {
-      font-family: Arial;
-      background: #0b0f14;
-      color: white;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
       text-align: center;
+      padding: 1.2rem;
     }
     .card {
-      background: #121821;
-      padding: 20px;
-      margin: 20px auto;
-      width: 400px;
+      background: var(--card);
+      padding: 1.1rem;
+      margin: 0 auto;
+      width: min(720px, 95vw);
       border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
     }
-    .green { color: #00ff99; }
-    .red { color: #ff4d4d; }
-    .yellow { color: #ffd966; }
+    .row { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; margin-bottom: .7rem; }
+    input, select, button {
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: var(--text);
+      padding: .55rem .7rem;
+      font-size: .95rem;
+    }
+    button { cursor: pointer; background: #1d4ed8; border: none; }
+    button:hover { background: #1e40af; }
+    .muted { color: var(--muted); font-size: .9rem; }
+    .green { color: var(--green); }
+    .red { color: var(--red); }
+    .yellow { color: var(--yellow); }
     .bar {
       height: 20px;
-      background: #222;
+      background: var(--bar-bg);
       border-radius: 10px;
       overflow: hidden;
       margin-top: 10px;
+      margin-bottom: 8px;
     }
-    .fill {
-      height: 100%;
-      background: #00ff99;
-    }
+    .fill { height: 100%; background: var(--green); width: 0%; transition: width .35s ease; }
+    .status { min-height: 1.2rem; }
   </style>
 </head>
-
 <body>
+  <h1>⚡ Live Edge Tracker</h1>
+  <div class="card">
+    <div class="row">
+      <input id="apiKey" placeholder="Odds API key" size="32" />
+      <button id="saveKeyBtn">Save key</button>
+      <button id="refreshBtn">Refresh now</button>
+    </div>
+    <div class="row">
+      <select id="gameSelect"></select>
+      <select id="teamSelect"></select>
+      <input id="gumboInput" type="number" step="0.1" min="0" max="100" value="62" title="Model win probability" />
+      <button id="updateModelBtn">Set model %</button>
+    </div>
 
-<h1>⚡ Live Edge Tracker</h1>
-
-<div class="card">
-  <h2 id="team">Loading...</h2>
-
-  <p>Gumbo Win %: <span id="gumbo"></span></p>
-  <p>Market Implied %: <span id="market"></span></p>
-  <p>Edge: <span id="edge"></span></p>
-
-  <h2 id="signal"></h2>
-
-  <div class="bar">
-    <div id="barFill" class="fill"></div>
+    <p class="muted">Bookmaker: <span id="bookName">Hard Rock preferred</span></p>
+    <h2 id="team">Pick a game</h2>
+    <p>Model Win %: <span id="gumbo">—</span></p>
+    <p>Market Implied %: <span id="market">—</span></p>
+    <p>Edge: <span id="edge">—</span></p>
+    <h2 id="signal">⚖️ HOLD</h2>
+    <div class="bar"><div id="barFill" class="fill"></div></div>
+    <p id="status" class="muted status">Enter API key and click Refresh.</p>
   </div>
-</div>
 
-<script>
-const ODDS_API_KEY = "YOUR_ODDS_API_KEY";
+  <script>
+    const STORAGE_KEY = 'edge_tracker_odds_key';
+    const POLL_MS = 30000;
+    const PREFERRED_BOOK = /hard\s*rock/i;
+    const FALLBACK_BOOKS = [/draftkings/i, /fanduel/i, /betmgm/i, /caesars/i];
 
-// convert moneyline → probability
-function moneylineToProb(odds) {
-  if (odds < 0) {
-    return Math.abs(odds) / (Math.abs(odds) + 100);
-  } else {
-    return 100 / (odds + 100);
-  }
-}
+    const state = { games: [], selectedGameIdx: 0, selectedTeam: 'home', modelProb: 0.62 };
 
-// fetch Hard Rock odds via OddsAPI
-async function getOdds() {
-  const res = await fetch(`https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=h2h`);
-  const data = await res.json();
+    const $ = (id) => document.getElementById(id);
 
-  // find Hard Rock odds
-  for (let game of data) {
-    for (let book of game.bookmakers) {
-      if (book.title.includes("Hard Rock")) {
-        return {
-          team: game.home_team,
-          odds: book.markets[0].outcomes[0].price
-        };
+    function moneylineToProb(odds) {
+      if (typeof odds !== 'number' || Number.isNaN(odds)) return null;
+      return odds < 0 ? Math.abs(odds) / (Math.abs(odds) + 100) : 100 / (odds + 100);
+    }
+
+    function safePct(v, digits = 1) {
+      return v == null ? '—' : `${(v * 100).toFixed(digits)}%`;
+    }
+
+    function pickBookmaker(game) {
+      if (!Array.isArray(game.bookmakers)) return null;
+      return game.bookmakers.find((b) => PREFERRED_BOOK.test(b.title))
+        || game.bookmakers.find((b) => FALLBACK_BOOKS.some((r) => r.test(b.title)))
+        || game.bookmakers[0]
+        || null;
+    }
+
+    function mapGame(game) {
+      const book = pickBookmaker(game);
+      if (!book) return null;
+      const market = (book.markets || []).find((m) => m.key === 'h2h');
+      if (!market) return null;
+      const home = market.outcomes.find((o) => o.name === game.home_team);
+      const away = market.outcomes.find((o) => o.name === game.away_team);
+      if (!home && !away) return null;
+      return {
+        home_team: game.home_team,
+        away_team: game.away_team,
+        commence_time: game.commence_time,
+        book: book.title,
+        home_odds: home?.price ?? null,
+        away_odds: away?.price ?? null,
+      };
+    }
+
+    async function fetchOdds() {
+      const apiKey = $('apiKey').value.trim();
+      if (!apiKey) throw new Error('Missing API key');
+      const url = `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${encodeURIComponent(apiKey)}&regions=us&markets=h2h`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Odds API ${res.status}`);
+      const data = await res.json();
+      if (!Array.isArray(data)) throw new Error('Unexpected API response');
+      return data.map(mapGame).filter(Boolean);
+    }
+
+    function populateSelectors() {
+      const gameSelect = $('gameSelect');
+      const teamSelect = $('teamSelect');
+      gameSelect.innerHTML = '';
+      state.games.forEach((g, i) => {
+        const t = new Date(g.commence_time).toLocaleString();
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = `${g.away_team} @ ${g.home_team} (${t})`;
+        gameSelect.appendChild(opt);
+      });
+      gameSelect.value = String(state.selectedGameIdx);
+
+      teamSelect.innerHTML = '';
+      const game = state.games[state.selectedGameIdx];
+      if (!game) return;
+      [['home', game.home_team], ['away', game.away_team]].forEach(([key, label]) => {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = label;
+        teamSelect.appendChild(opt);
+      });
+      teamSelect.value = state.selectedTeam;
+    }
+
+    function render() {
+      const game = state.games[state.selectedGameIdx];
+      if (!game) {
+        $('team').innerText = 'No games found';
+        $('gumbo').innerText = '—'; $('market').innerText = '—'; $('edge').innerText = '—';
+        $('signal').innerText = '⚖️ HOLD'; $('signal').className = 'yellow';
+        $('barFill').style.width = '0%';
+        return;
+      }
+      const odds = state.selectedTeam === 'home' ? game.home_odds : game.away_odds;
+      const teamName = state.selectedTeam === 'home' ? game.home_team : game.away_team;
+      const implied = moneylineToProb(odds);
+      const edge = implied == null ? null : state.modelProb - implied;
+
+      $('bookName').innerText = game.book;
+      $('team').innerText = `${teamName} (${odds ?? 'N/A'})`;
+      $('gumbo').innerText = safePct(state.modelProb);
+      $('market').innerText = safePct(implied);
+      $('edge').innerText = safePct(edge, 2);
+      $('barFill').style.width = `${Math.max(0, Math.min(100, state.modelProb * 100))}%`;
+
+      const signal = $('signal');
+      if (edge == null) {
+        signal.innerText = '⚖️ HOLD'; signal.className = 'yellow';
+      } else if (edge > 0.05) {
+        signal.innerText = '🟢 ENTER'; signal.className = 'green';
+      } else if (edge < -0.03) {
+        signal.innerText = '🔴 EXIT'; signal.className = 'red';
+      } else {
+        signal.innerText = '⚖️ HOLD'; signal.className = 'yellow';
       }
     }
-  }
-}
 
-// fake Gumbo for now (replace with real API)
-async function getGumboProb() {
-  // replace this with your Gumbo endpoint
-  return Math.random() * 0.2 + 0.6; // 60–80% sim
-}
+    async function refresh() {
+      $('status').innerText = 'Refreshing odds...';
+      try {
+        state.games = await fetchOdds();
+        state.selectedGameIdx = Math.min(state.selectedGameIdx, Math.max(0, state.games.length - 1));
+        populateSelectors();
+        render();
+        $('status').innerText = `Updated ${new Date().toLocaleTimeString()} (${state.games.length} games)`;
+      } catch (e) {
+        $('status').innerText = `Error: ${e.message}`;
+      }
+    }
 
-// main loop
-async function update() {
-  const oddsData = await getOdds();
-  const gumboProb = await getGumboProb();
+    function init() {
+      const savedKey = localStorage.getItem(STORAGE_KEY);
+      if (savedKey) $('apiKey').value = savedKey;
 
-  if (!oddsData) return;
+      $('saveKeyBtn').addEventListener('click', () => {
+        localStorage.setItem(STORAGE_KEY, $('apiKey').value.trim());
+        $('status').innerText = 'API key saved in this browser.';
+      });
+      $('refreshBtn').addEventListener('click', refresh);
+      $('updateModelBtn').addEventListener('click', () => {
+        const val = Number($('gumboInput').value);
+        if (Number.isNaN(val) || val < 0 || val > 100) {
+          $('status').innerText = 'Model % must be 0 to 100.';
+          return;
+        }
+        state.modelProb = val / 100;
+        render();
+      });
+      $('gameSelect').addEventListener('change', (e) => {
+        state.selectedGameIdx = Number(e.target.value);
+        populateSelectors();
+        render();
+      });
+      $('teamSelect').addEventListener('change', (e) => {
+        state.selectedTeam = e.target.value;
+        render();
+      });
 
-  const implied = moneylineToProb(oddsData.odds);
-  const edge = gumboProb - implied;
+      refresh();
+      setInterval(refresh, POLL_MS);
+    }
 
-  // UI updates
-  document.getElementById("team").innerText = oddsData.team;
-  document.getElementById("gumbo").innerText = (gumboProb*100).toFixed(1) + "%";
-  document.getElementById("market").innerText = (implied*100).toFixed(1) + "%";
-  document.getElementById("edge").innerText = (edge*100).toFixed(2) + "%";
-
-  const signal = document.getElementById("signal");
-
-  if (edge > 0.05) {
-    signal.innerText = "🟢 ENTER";
-    signal.className = "green";
-  } else if (edge < -0.03) {
-    signal.innerText = "🔴 EXIT";
-    signal.className = "red";
-  } else {
-    signal.innerText = "⚖️ HOLD";
-    signal.className = "yellow";
-  }
-
-  document.getElementById("barFill").style.width = (gumboProb*100) + "%";
-}
-
-// refresh every 5 seconds
-setInterval(update, 5000);
-update();
-</script>
-
+    init();
+  </script>
 </body>
 </html>
