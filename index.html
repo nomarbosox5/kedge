@@ -8,7 +8,9 @@
         :root { --bg: #000; --bg-alt: #111; --row-border: #222; --text-main: #fff; --text-muted: #777; --accent-live: #22c55e; --accent-gap-high: #ef4444; --accent-win: #3b82f6; --accent-odds: #fbbf24; }
         * { box-sizing: border-box; }
         body { background: var(--bg); color: var(--text-main); font-family: system-ui, sans-serif; margin: 0; padding: 5px; overflow: hidden; }
-        #status-bar { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); padding: 4px 6px; background: var(--bg-alt); border-bottom: 1px solid var(--row-border); }
+        #status-bar { display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: var(--text-muted); padding: 4px 6px; background: var(--bg-alt); border-bottom: 1px solid var(--row-border); }
+        #refresh-btn { background:#333; color:#fff; border:1px solid #444; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:10px; }
+        #refresh-btn:hover { background:#444; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; }
         th { background: #181818; color: #888; text-align: left; padding: 6px 4px; font-weight: 500; border-bottom: 1px solid var(--row-border); }
         td { padding: 8px 4px; border-bottom: 1px solid var(--row-border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -22,7 +24,7 @@
 
 <div id="status-bar">
     <div id="clock">SYSTEM READY</div>
-    <div>HARD ROCK FL | ALARM: &gt;8%</div>
+    <button id="refresh-btn" onclick="update()">PULL NOW</button>
     <div id="api-status">API: IDLE</div>
 </div>
 
@@ -44,7 +46,7 @@
 <audio id="alarm-sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
 
 <script>
-const ODDS_KEY = '75fbd1947a7dec109b7573b6951a65aa';
+const ODDS_KEY = '25bafa02832145bbfc9cce3e84332668';
 const THRESHOLD = 8.0;
 
 // Your Cloudflare Worker proxy
@@ -175,8 +177,11 @@ async function update() {
     }
 }
 
-update();
+// Auto pull once per minute
 setInterval(update, 60000);
+
+// Initial pull
+update();
 </script>
 </body>
 </html>
