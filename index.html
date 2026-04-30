@@ -1,187 +1,248 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GAP KING | LIVE COMMAND</title>
-    <style>
-        :root { --bg: #000; --bg-alt: #111; --row-border: #222; --text-main: #fff; --text-muted: #777; --accent-live: #22c55e; --accent-gap-high: #ef4444; --accent-win: #3b82f6; --accent-odds: #fbbf24; }
-        * { box-sizing: border-box; }
-        body { background: var(--bg); color: var(--text-main); font-family: system-ui, sans-serif; margin: 0; padding: 5px; overflow: hidden; }
-        #status-bar { display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: var(--text-muted); padding: 4px 6px; background: var(--bg-alt); border-bottom: 1px solid var(--row-border); }
-        #refresh-btn { background:#333; color:#fff; border:1px solid #444; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:10px; }
-        #refresh-btn:hover { background:#444; }
-        table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; }
-        th { background: #181818; color: #888; text-align: left; padding: 6px 4px; font-weight: 500; border-bottom: 1px solid var(--row-border); }
-        td { padding: 8px 4px; border-bottom: 1px solid var(--row-border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .live { color: var(--accent-live); font-weight: 700; }
-        .gap-high { background: rgba(239, 68, 68, 0.2); color: var(--accent-gap-high); font-weight: bold; }
-        .win-pct { color: var(--accent-win); font-weight: 600; }
-        .odd-val { color: var(--accent-odds); }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GAP KING | LIVE COMMAND</title>
+
+<style>
+:root {
+    --bg: #000;
+    --bg-alt: #111;
+    --row-border: #222;
+    --text-main: #fff;
+    --text-muted: #777;
+    --accent-live: #22c55e;
+    --accent-gap-high: #ef4444;
+    --accent-win: #3b82f6;
+    --accent-odds: #fbbf24;
+}
+* { box-sizing: border-box; }
+
+body {
+    background: var(--bg);
+    color: var(--text-main);
+    font-family: system-ui, sans-serif;
+    margin: 0;
+    padding: 5px;
+    overflow: auto;
+}
+
+#status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    color: var(--text-muted);
+    padding: 4px 6px;
+    background: var(--bg-alt);
+    border-bottom: 1px solid var(--row-border);
+}
+
+#refresh-btn {
+    background:#333;
+    color:#fff;
+    border:1px solid #444;
+    padding:4px 8px;
+    border-radius:4px;
+    cursor:pointer;
+    font-size:10px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    table-layout: fixed;
+}
+
+th {
+    background: #181818;
+    color: #888;
+    text-align: left;
+    padding: 6px 4px;
+    border-bottom: 1px solid var(--row-border);
+}
+
+td {
+    padding: 8px 4px;
+    border-bottom: 1px solid var(--row-border);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.live { color: var(--accent-live); font-weight: 700; }
+.gap-high { background: rgba(239,68,68,0.2); color: var(--accent-gap-high); font-weight: bold; }
+.win-pct { color: var(--accent-win); font-weight: 600; }
+.odd-val { color: var(--accent-odds); }
+
+</style>
 </head>
 <body>
 
 <div id="status-bar">
     <div id="clock">SYSTEM READY</div>
-    <button id="refresh-btn" onclick="update()">PULL NOW</button>
+    <button id="refresh-btn">PULL NOW</button>
     <div id="api-status">API: IDLE</div>
 </div>
 
-<table id="main-table">
-    <thead>
-        <tr>
-            <th width="20%">CITY/INN</th>
-            <th width="10%">SCORE</th>
-            <th width="12%">BOOK %</th>
-            <th width="12%">MLB %</th>
-            <th width="12%">GAP %</th>
-            <th width="12%">HR ODDS</th>
-            <th width="12%">MODEL</th>
-        </tr>
-    </thead>
-    <tbody id="grid-body"></tbody>
+<table>
+<thead>
+<tr>
+<th width="20%">TEAM</th>
+<th width="10%">SCORE</th>
+<th width="12%">BOOK %</th>
+<th width="12%">MLB %</th>
+<th width="12%">GAP</th>
+<th width="12%">ODDS</th>
+<th width="12%">MODEL</th>
+</tr>
+</thead>
+<tbody id="grid-body"></tbody>
 </table>
 
-<audio id="alarm-sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+<audio id="alarm" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
 
 <script>
-const ODDS_KEY = '25bafa02832145bbfc9cce3e84332668';   // ✔ FIXED KEY
-const THRESHOLD = 8.0;
+const ODDS_KEY = "25bafa02832145bbfc9cce3e84332668";
+const PROXY = "https://green-hat-0844.nomarbosox5.workers.dev/?url=";
+const THRESHOLD = 8;
 
-// ✔ Your Cloudflare Worker proxy
-const PROXY_BASE = "https://green-hat-0844.nomarbosox5.workers.dev/?url=";
+// unlock audio
+document.body.addEventListener("click", () => {
+    document.getElementById("alarm").play().catch(()=>{});
+}, { once: true });
 
-function proxied(url) {
-    return PROXY_BASE + encodeURIComponent(url);
+function proxied(url){
+    return PROXY + encodeURIComponent(url);
 }
 
-function amToProb(odds) {
+function normalize(name){
+    return name.toLowerCase().replace(/[^a-z]/g,'');
+}
+
+function amToProb(odds){
     const n = parseFloat(odds);
-    if (isNaN(n) || n === 0) return 0;
-    return n < 0 ? (Math.abs(n) / (Math.abs(n) + 100)) * 100 : (100 / (n + 100)) * 100;
+    if (n < 0) return (Math.abs(n)/(Math.abs(n)+100))*100;
+    return (100/(n+100))*100;
 }
 
-function probToAm(prob) {
-    if (prob >= 100) return "-9999";
-    if (prob <= 0) return "+9999";
-    if (prob >= 50) return Math.round(-100 * (prob / (100 - prob)));
-    return "+" + Math.round(100 * ((100 - prob) / prob));
+function probToAm(p){
+    if (p >= 50) return Math.round(-100*(p/(100-p)));
+    return "+"+Math.round(100*((100-p)/p));
 }
 
-async function safeJson(res) {
-    if (!res || !res.ok) return null;
-    try { return await res.json(); }
-    catch { return null; }
-}
+async function update(){
+    const status = document.getElementById("api-status");
+    status.innerText = "API: LOADING";
 
-async function update() {
-    const apiStatus = document.getElementById('api-status');
-    const clock = document.getElementById('clock');
-    apiStatus.innerText = "API: PULLING...";
+    try{
+        const oddsUrl = proxied(`https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?regions=us&apiKey=${ODDS_KEY}&oddsFormat=american`);
+        const schedUrl = proxied(`https://statsapi.mlb.com/api/v1/schedule?sportId=1&hydrate=linescore`);
 
-    try {
-        const oddsUrl = proxied(`https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?regions=us&apiKey=${ODDS_KEY}&bookmakers=hardrock&oddsFormat=american`);
-        const schedUrl = proxied('https://statsapi.mlb.com/api/v1/schedule?sportId=1&hydrate=linescore');
+        const [oddsRes, schedRes] = await Promise.all([fetch(oddsUrl), fetch(schedUrl)]);
+        const odds = await oddsRes.json();
+        const sched = await schedRes.json();
 
-        const [oddsRes, mlbRes] = await Promise.all([fetch(oddsUrl), fetch(schedUrl)]);
-        const oddsData = await safeJson(oddsRes);
-        const mlbData = await safeJson(mlbRes);
+        const games = sched?.dates?.[0]?.games || [];
 
-        if (!oddsData || !Array.isArray(oddsData) || !mlbData?.dates?.[0]) {
-            throw new Error("Bad API payload");
-        }
+        // map odds
+        const oddsMap = {};
+        odds.forEach(o=>{
+            oddsMap[normalize(o.home_team)] = o;
+        });
 
-        const games = mlbData.dates[0].games || [];
-        const tableRows = [];
-        let alarmTriggered = false;
+        // fetch all live games in parallel
+        const liveDataArr = await Promise.all(
+            games.map(g =>
+                fetch(proxied(`https://statsapi.mlb.com/api/v1.1/game/${g.gamePk}/feed/live`))
+                .then(r=>r.json())
+                .catch(()=>null)
+            )
+        );
 
-        const oddsByHome = {};
-        for (const o of oddsData) {
-            if (o?.home_team) oddsByHome[o.home_team] = o;
-        }
+        let rows = [];
+        let alarm = false;
 
-        for (const game of games) {
-            const homeTeam = game?.teams?.home?.team?.name;
-            const awayTeam = game?.teams?.away?.team?.name;
-            if (!homeTeam || !awayTeam) continue;
+        for(let i=0;i<games.length;i++){
+            const g = games[i];
+            const live = liveDataArr[i];
 
-            const liveUrl = proxied(`https://statsapi.mlb.com/api/v1.1/game/${game.gamePk}/feed/live`);
-            const liveData = await safeJson(await fetch(liveUrl));
+            const home = g?.teams?.home?.team?.name;
+            const away = g?.teams?.away?.team?.name;
+            if(!home || !away) continue;
 
-            const homeWP = liveData?.liveData?.plays?.currentPlay?.about?.homeWinProbability;
-            if (typeof homeWP !== "number") continue;
+            const wp =
+                live?.liveData?.plays?.currentPlay?.about?.homeWinProbability ??
+                live?.liveData?.linescore?.teams?.home?.winProbability;
 
-            const oddsMatch = oddsByHome[homeTeam];
-            const hrOutcomes = oddsMatch?.bookmakers?.[0]?.markets?.[0]?.outcomes;
-            if (!Array.isArray(hrOutcomes)) continue;
+            if(typeof wp !== "number") continue;
 
-            const hrHome = hrOutcomes.find(o => o?.name === homeTeam);
-            if (!hrHome) continue;
+            const oddsMatch = oddsMap[normalize(home)];
+            if(!oddsMatch) continue;
 
-            const amOdds = parseFloat(hrHome.price_american ?? hrHome.price);
-            if (isNaN(amOdds)) continue;
+            const book = oddsMatch.bookmakers?.[0];
+            const outcomes = book?.markets?.[0]?.outcomes;
+            if(!outcomes) continue;
 
-            const bookProb = amToProb(amOdds);
-            const gap = homeWP - bookProb;
+            const homeOdds = outcomes.find(o=>normalize(o.name)===normalize(home));
+            if(!homeOdds) continue;
 
-            if (gap >= THRESHOLD) alarmTriggered = true;
+            const am = homeOdds.price;
+            const bookProb = amToProb(am);
+            const gap = wp - bookProb;
 
-            const inn = game.linescore?.currentInningOrdinal
-                ? (game.linescore.inningHalf === "top" ? "▲" : "▼") + game.linescore.currentInningOrdinal
-                : "PRE";
+            if(gap >= THRESHOLD) alarm = true;
 
-            const score = `${game.teams.away.score ?? 0}-${game.teams.home.score ?? 0}`;
-
-            tableRows.push({
-                city: homeTeam.split(" ").pop(),
-                inn,
-                score,
-                bookProb: bookProb.toFixed(1) + "%",
-                mlbWP: homeWP.toFixed(1) + "%",
-                gap: gap.toFixed(1) + "%",
-                gapVal: gap,
-                hrOdds: amOdds > 0 ? "+" + amOdds : amOdds,
-                modelOdds: probToAm(homeWP),
-                isLive: game.status?.abstractGameState === "Live"
+            rows.push({
+                team: home.split(" ").pop(),
+                score: `${g.teams.away.score||0}-${g.teams.home.score||0}`,
+                book: bookProb.toFixed(1),
+                wp: wp.toFixed(1),
+                gap: gap.toFixed(1),
+                odds: am>0?`+${am}`:am,
+                model: probToAm(wp),
+                live: g.status?.abstractGameState==="Live"
             });
         }
 
-        tableRows.sort((a, b) => b.gapVal - a.gapVal);
+        rows.sort((a,b)=>b.gap-a.gap);
 
-        const tbody = document.getElementById("grid-body");
-        tbody.innerHTML = tableRows.length
-            ? tableRows.map(r => `
+        document.getElementById("grid-body").innerHTML =
+            rows.length ?
+            rows.map(r=>`
                 <tr>
-                    <td class="${r.isLive ? 'live' : ''}">${r.city} <small>${r.inn}</small></td>
+                    <td class="${r.live?'live':''}">${r.team}</td>
                     <td>${r.score}</td>
-                    <td>${r.bookProb}</td>
-                    <td class="win-pct">${r.mlbWP}</td>
-                    <td class="${r.gapVal >= THRESHOLD ? 'gap-high' : ''}">${r.gap}</td>
-                    <td class="odd-val">${r.hrOdds}</td>
-                    <td>${r.modelOdds}</td>
+                    <td>${r.book}%</td>
+                    <td class="win-pct">${r.wp}%</td>
+                    <td class="${r.gap>=THRESHOLD?'gap-high':''}">${r.gap}%</td>
+                    <td class="odd-val">${r.odds}</td>
+                    <td>${r.model}</td>
                 </tr>
             `).join("")
-            : `<tr><td colspan="7" style="text-align:center; padding:20px; color:#555;">NO LIVE DATA AVAILABLE</td></tr>`;
+            :
+            `<tr><td colspan="7" style="text-align:center;color:#555;padding:20px">NO DATA</td></tr>`;
 
-        if (alarmTriggered) {
-            document.getElementById("alarm-sound").play().catch(() => {});
+        if(alarm){
+            document.getElementById("alarm").play().catch(()=>{});
         }
 
-        apiStatus.innerText = "API: SLEEP";
-        clock.innerText = new Date().toLocaleTimeString();
+        status.innerText = "API: LIVE";
+        document.getElementById("clock").innerText = new Date().toLocaleTimeString();
 
-    } catch (err) {
-        console.error(err);
-        apiStatus.innerText = "API: ERROR";
+    }catch(e){
+        console.error(e);
+        status.innerText = "API: ERROR";
     }
 }
 
-// Auto pull once per minute
-setInterval(update, 60000);
+document.getElementById("refresh-btn").onclick = update;
 
-// Initial pull
+setInterval(update, 60000);
 update();
 </script>
+
 </body>
 </html>
